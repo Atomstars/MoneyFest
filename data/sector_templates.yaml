@@ -1,0 +1,357 @@
+# Sector transmission templates -- hand-curated once per sector.
+# =====================================================================
+# FIRST DRAFT FOR HUMAN REVIEW. Each edge below is a curator's starting
+# hypothesis, not a ratified position. Review direction signs and strength
+# before relying on any output.
+# =====================================================================
+# Each edge:
+#   factor_id      -- must exist in data/factors.yaml (closed vocabulary)
+#   channel        -- one of: input_cost, output_price, revenue_currency,
+#                     cost_currency, funding_cost, demand_driver, regulatory,
+#                     supply_chain, competitive
+#   pnl_line       -- free text (gross_margin, revenue, nim, ebitda, ...)
+#   direction      -- "+1" | "-1" | "COND"   (effect of a factor RISE on the stock)
+#   condition_note -- required when direction == COND
+#   strength       -- core | secondary
+#   chain_template_text -- one plain-language sentence; {dir}/{inv}/{impact}
+#                          are interpolated at render time from the factor's move.
+#
+# Direction convention: +1 means "factor up => good for the stock" and
+# -1 means "factor up => bad for the stock". Resolved per stock at render time
+# as sign(factor_move) x direction (Constraint 7).
+
+version: sector-templates-v1-draft
+
+sectors:
+
+  IT_SERVICES:
+    - factor_id: USDINR
+      channel: revenue_currency
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "INR {dir} vs USD -> USD revenues convert to more INR -> revenue/margin {impact}."
+    - factor_id: IT_DEMAND_US
+      channel: demand_driver
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "US tech-spend {dir} -> deal wins and billing {dir} -> revenue {impact}."
+    - factor_id: US_FED
+      channel: demand_driver
+      pnl_line: revenue
+      direction: COND
+      condition_note: "Higher US rates can slow discretionary tech budgets with a lag; effect is indirect."
+      strength: secondary
+      chain_template_text: "US rate {dir} -> client budget caution -> discretionary demand {impact}."
+
+  BANKS_PRIVATE:
+    - factor_id: RBI_REPO
+      channel: funding_cost
+      pnl_line: nim
+      direction: COND
+      condition_note: "Hike: near-term NIM expansion if assets reprice faster than deposits; sustained hikes drag credit growth."
+      strength: core
+      chain_template_text: "Repo {dir} -> asset/deposit repricing gap -> NIM {impact} (regime-dependent)."
+    - factor_id: IN_10Y
+      channel: funding_cost
+      pnl_line: treasury_income
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "10Y yield {dir} -> bond-book mark-to-market {inv} -> treasury income {impact}."
+    - factor_id: REGULATORY_RBI
+      channel: regulatory
+      pnl_line: growth
+      direction: "-1"
+      strength: core
+      chain_template_text: "RBI curb/penalty -> business restriction -> growth/costs {impact}."
+
+  BANKS_PSU:
+    - factor_id: RBI_REPO
+      channel: funding_cost
+      pnl_line: nim
+      direction: COND
+      condition_note: "PSU liability mix is deposit-heavy; NIM sensitivity to repo is muted vs private peers."
+      strength: core
+      chain_template_text: "Repo {dir} -> repricing -> NIM {impact} (deposit-heavy, muted)."
+    - factor_id: PSU_DIVESTMENT
+      channel: competitive
+      pnl_line: valuation
+      direction: "+1"
+      strength: secondary
+      chain_template_text: "Divestment/consolidation news {dir} -> re-rating {impact}."
+    - factor_id: IN_10Y
+      channel: funding_cost
+      pnl_line: treasury_income
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "10Y yield {dir} -> large SLR bond book {inv} -> treasury {impact}."
+
+  NBFC:
+    - factor_id: IN_10Y
+      channel: funding_cost
+      pnl_line: nim
+      direction: "-1"
+      strength: core
+      chain_template_text: "10Y yield {dir} -> wholesale borrowing cost {dir} -> NIM {impact}."
+    - factor_id: RBI_REPO
+      channel: funding_cost
+      pnl_line: nim
+      direction: "-1"
+      strength: core
+      chain_template_text: "Repo {dir} -> funding cost {dir} -> NIM {impact}."
+    - factor_id: REGULATORY_RBI
+      channel: regulatory
+      pnl_line: growth
+      direction: "-1"
+      strength: core
+      chain_template_text: "RBI tightening on NBFC norms -> growth/cost {impact}."
+
+  PAINTS:
+    - factor_id: CRUDE_BRENT
+      channel: input_cost
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: core
+      chain_template_text: "Crude {dir} -> monomer/solvent input costs {dir} -> gross margin {inv} -> {impact}."
+    - factor_id: USDINR
+      channel: cost_currency
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "INR {dir} -> imported raw-material cost {inv} -> gross margin {impact}."
+    - factor_id: RURAL_DEMAND
+      channel: demand_driver
+      pnl_line: revenue
+      direction: "+1"
+      strength: secondary
+      chain_template_text: "Rural demand {dir} -> repainting volumes {dir} -> revenue {impact}."
+
+  OMC:
+    - factor_id: CRUDE_BRENT
+      channel: input_cost
+      pnl_line: marketing_margin
+      direction: COND
+      condition_note: "When retail prices are administered/frozen, rising crude compresses marketing margins; when free, pass-through protects margins."
+      strength: core
+      chain_template_text: "Crude {dir} under a price-freeze -> marketing margin {inv} -> {impact}."
+    - factor_id: FUEL_MARKETING_MARGIN
+      channel: output_price
+      pnl_line: marketing_margin
+      direction: "+1"
+      strength: core
+      chain_template_text: "Marketing margin {dir} -> retail fuel profitability {dir} -> {impact}."
+    - factor_id: USDINR
+      channel: cost_currency
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "INR {dir} -> USD crude import bill {inv} -> under-recovery {impact}."
+
+  UPSTREAM_OIL:
+    - factor_id: CRUDE_BRENT
+      channel: output_price
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "Crude {dir} -> realisation on produced oil {dir} -> revenue {impact}."
+    - factor_id: NATURAL_GAS
+      channel: output_price
+      pnl_line: revenue
+      direction: "+1"
+      strength: secondary
+      chain_template_text: "Gas price {dir} -> gas realisation {dir} -> revenue {impact}."
+    - factor_id: EXPORT_POLICY
+      channel: regulatory
+      pnl_line: revenue
+      direction: COND
+      condition_note: "Windfall taxes/cess on crude realisations can cap upside when prices spike."
+      strength: secondary
+      chain_template_text: "Windfall levy change -> net realisation {impact}."
+
+  AUTOS:
+    - factor_id: STEEL_HRC
+      channel: input_cost
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: core
+      chain_template_text: "Steel {dir} -> body/component cost {dir} -> gross margin {inv} -> {impact}."
+    - factor_id: EV_POLICY
+      channel: demand_driver
+      pnl_line: revenue
+      direction: COND
+      condition_note: "Direction depends on the company's ICE-vs-EV mix; a subsidy helps EV-heavy, can hurt ICE-heavy."
+      strength: secondary
+      chain_template_text: "EV policy shift -> demand mix -> revenue {impact} (mix-dependent)."
+    - factor_id: RURAL_DEMAND
+      channel: demand_driver
+      pnl_line: revenue
+      direction: "+1"
+      strength: secondary
+      chain_template_text: "Rural demand {dir} -> entry-segment volumes {dir} -> revenue {impact}."
+
+  TYRES:
+    - factor_id: CRUDE_BRENT
+      channel: input_cost
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: core
+      chain_template_text: "Crude {dir} -> synthetic rubber/carbon-black cost {dir} -> gross margin {inv} -> {impact}."
+    - factor_id: CHINA_DEMAND
+      channel: competitive
+      pnl_line: revenue
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "Chinese tyre dumping {dir} -> pricing pressure -> revenue {impact}."
+
+  PHARMA:
+    - factor_id: DRUG_PRICING_US
+      channel: output_price
+      pnl_line: revenue
+      direction: COND
+      condition_note: "Price erosion is negative; an FDA approval or resolved import alert is positive. Direction depends on the specific event."
+      strength: core
+      chain_template_text: "US generic pricing/FDA event -> US revenue {impact} (event-dependent)."
+    - factor_id: USDINR
+      channel: revenue_currency
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "INR {dir} -> USD export revenue converts to more INR -> revenue {impact}."
+
+  FMCG:
+    - factor_id: CRUDE_BRENT
+      channel: input_cost
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "Crude {dir} -> packaging/palm-derivative cost {dir} -> gross margin {inv} -> {impact}."
+    - factor_id: RURAL_DEMAND
+      channel: demand_driver
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "Rural demand {dir} -> staples volume {dir} -> revenue {impact}."
+    - factor_id: MONSOON
+      channel: demand_driver
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "Monsoon {dir} -> rural incomes {dir} -> consumption {impact}."
+
+  METALS_STEEL:
+    - factor_id: STEEL_HRC
+      channel: output_price
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "Steel {dir} -> realisation {dir} -> revenue/EBITDA {impact}."
+    - factor_id: COAL
+      channel: input_cost
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: core
+      chain_template_text: "Coking coal {dir} -> conversion cost {dir} -> gross margin {inv} -> {impact}."
+    - factor_id: CHINA_DEMAND
+      channel: output_price
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "China demand/stimulus {dir} -> global steel prices {dir} -> revenue {impact}."
+
+  CEMENT:
+    - factor_id: CEMENT_PRICE
+      channel: output_price
+      pnl_line: ebitda
+      direction: "+1"
+      strength: core
+      chain_template_text: "Cement realisation {dir} -> EBITDA/tonne {dir} -> {impact}."
+    - factor_id: COAL
+      channel: input_cost
+      pnl_line: gross_margin
+      direction: "-1"
+      strength: core
+      chain_template_text: "Coal/petcoke {dir} -> kiln fuel cost {dir} -> margin {inv} -> {impact}."
+
+  REALTY:
+    - factor_id: RBI_REPO
+      channel: demand_driver
+      pnl_line: sales
+      direction: "-1"
+      strength: core
+      chain_template_text: "Repo {dir} -> home-loan EMIs {dir} -> housing demand {inv} -> {impact}."
+    - factor_id: IN_10Y
+      channel: funding_cost
+      pnl_line: interest_cost
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "10Y yield {dir} -> developer borrowing cost {dir} -> {impact}."
+
+  AVIATION:
+    - factor_id: AIRFARE_ATF
+      channel: input_cost
+      pnl_line: ebitda
+      direction: "-1"
+      strength: core
+      chain_template_text: "ATF {dir} -> fuel cost (~40% of opex) {dir} -> EBITDA {inv} -> {impact}."
+    - factor_id: CRUDE_BRENT
+      channel: input_cost
+      pnl_line: ebitda
+      direction: "-1"
+      strength: core
+      chain_template_text: "Crude {dir} -> jet-fuel cost {dir} -> EBITDA {inv} -> {impact}."
+    - factor_id: USDINR
+      channel: cost_currency
+      pnl_line: ebitda
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "INR {dir} -> USD lease/fuel costs {inv} -> EBITDA {impact}."
+
+  POWER:
+    - factor_id: COAL
+      channel: input_cost
+      pnl_line: gross_margin
+      direction: COND
+      condition_note: "Regulated (cost-plus) capacity passes fuel cost through; merchant capacity does not, so direction depends on the mix."
+      strength: core
+      chain_template_text: "Coal {dir} -> fuel cost {dir} -> merchant margin {impact} (regulated capacity insulated)."
+    - factor_id: POWER_DEMAND
+      channel: demand_driver
+      pnl_line: revenue
+      direction: "+1"
+      strength: core
+      chain_template_text: "Power demand {dir} -> PLF/merchant tariff {dir} -> revenue {impact}."
+
+  DEFENCE:
+    - factor_id: DEFENCE_ORDERS
+      channel: demand_driver
+      pnl_line: order_book
+      direction: "+1"
+      strength: core
+      chain_template_text: "Defence orders {dir} -> order book {dir} -> revenue visibility {impact}."
+    - factor_id: UNION_BUDGET
+      channel: demand_driver
+      pnl_line: order_book
+      direction: "+1"
+      strength: secondary
+      chain_template_text: "Defence capex allocation {dir} -> tender pipeline {dir} -> {impact}."
+    - factor_id: EXPORT_POLICY
+      channel: demand_driver
+      pnl_line: revenue
+      direction: "+1"
+      strength: secondary
+      chain_template_text: "Defence export easing {dir} -> addressable market {dir} -> revenue {impact}."
+
+  TELECOM:
+    - factor_id: TELECOM_TARIFF
+      channel: output_price
+      pnl_line: arpu
+      direction: "+1"
+      strength: core
+      chain_template_text: "Tariff {dir} -> ARPU {dir} -> revenue/EBITDA {impact}."
+    - factor_id: REGULATORY_RBI
+      channel: regulatory
+      pnl_line: liabilities
+      direction: "-1"
+      strength: secondary
+      chain_template_text: "Adverse AGR/spectrum ruling -> liabilities {dir} -> {impact}."

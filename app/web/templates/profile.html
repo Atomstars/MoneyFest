@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% set s = header.stock %}
+{% block title %}{{ s.ticker_nse }} exposure profile{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ s.name }} — exposure profile</h1>
+  <a href="/ui/stock/{{ s.id }}">← back to detail</a>
+</div>
+
+<section class="card">
+  <h2>Effective profile</h2>
+  <p class="muted">The ratified edges the engine reasons over. Draft rows are excluded.</p>
+  <div class="table-scroll">
+  <table class="grid">
+    <thead><tr>
+      <th>Factor</th><th>Channel</th><th>P&amp;L line</th><th>Direction</th>
+      <th>Strength</th><th>Provenance</th><th>Condition</th>
+    </tr></thead>
+    <tbody>
+    {% for e in edges %}
+      <tr>
+        <td>{{ e.factor_id }}</td>
+        <td>{{ e.channel }}</td>
+        <td>{{ e.pnl_line or '—' }}</td>
+        <td>{{ e.direction }}</td>
+        <td>{{ e.strength }}</td>
+        <td><span class="badge prov-{{ e.provenance }}">{{ e.provenance }}</span></td>
+        <td>{{ e.condition_note or '—' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">No ratified edges (empty profile — event-trigger only).</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Pending drafts</h2>
+  {% if not drafts %}
+    <p class="muted">No pending drafts. Generate some with
+      <code>python -m app.exposure.draft --stock {{ s.ticker_nse }} --filing &lt;extract&gt;</code>.</p>
+  {% else %}
+  {% for d in drafts %}
+  <div class="draft">
+    <div class="draft-head">
+      <strong>{{ d.factor_id }}</strong> · {{ d.channel }} · dir {{ d.direction }} · {{ d.strength }}
+    </div>
+    {% if d.rationale %}<p>{{ d.rationale }}</p>{% endif %}
+    <details class="cite">
+      <summary>Show source citation (required before approving)</summary>
+      <blockquote>{{ d.source_citation or 'no citation provided' }}</blockquote>
+      <form method="post" action="/ui/exposure/{{ d.id }}/ratify" class="inline">
+        <input type="hidden" name="stock_id" value="{{ s.id }}">
+        <button type="submit" class="approve">Approve</button>
+      </form>
+    </details>
+    <form method="post" action="/ui/exposure/{{ d.id }}/reject" class="inline">
+      <input type="hidden" name="stock_id" value="{{ s.id }}">
+      <button type="submit" class="reject">Reject</button>
+    </form>
+  </div>
+  {% endfor %}
+  {% endif %}
+</section>
+
+{% endblock %}

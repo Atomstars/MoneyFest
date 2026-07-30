@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Ops · Stock Impact Explainer{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Operations</h1>
+  <div class="ops-actions">
+    <form method="post" action="/ui/ops/run" class="inline">
+      <button type="submit" onclick="return confirm('Run the EOD job now?')">Run EOD now</button>
+    </form>
+    <form method="post" action="/ui/ops/retry" class="inline">
+      <button type="submit">Retry failed alerts</button>
+    </form>
+  </div>
+</div>
+
+<section class="card">
+  <h2>Verifier strip rate <span class="muted">— the hallucination meter</span></h2>
+  <p class="muted">Every claim the verifier removed, by stage. A healthy engine strips
+    unsupported claims here rather than shipping them. Zero strips over many attributed
+    days can mean the agent is being too cautious — or that nothing needed removing.</p>
+  <p class="bignum">{{ strips.total }} <span class="muted">total strips</span></p>
+  <table class="grid">
+    <thead><tr><th>Stage</th><th>Count</th></tr></thead>
+    <tbody>
+    {% for stage, n in strips.by_stage.items() %}
+      <tr><td>{{ stage }}</td><td>{{ n }}</td></tr>
+    {% else %}
+      <tr><td colspan="2" class="muted">No strips recorded yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Outcome distribution</h2>
+  {% if outcomes.no_driver_zero_warning %}
+  <p class="warn">⚠ NO_DRIVER has been zero across the recent eventful window. The rubric
+    bar may be too low — the engine should honestly say "no clear driver" sometimes
+    (DESIGN §7).</p>
+  {% endif %}
+  {% set total = outcomes.counts.values()|sum %}
+  <div class="bars">
+    {% for name, n in outcomes.counts.items() %}
+    <div class="bar-row">
+      <span class="bar-label">{{ name }}</span>
+      <span class="bar"><span class="bar-fill" style="width: {{ (100 * n / total)|round(1) if total else 0 }}%"></span></span>
+      <span class="bar-n">{{ n }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>Runs</h2>
+  <div class="table-scroll">
+  <table class="grid">
+    <thead><tr><th>Date</th><th>Started</th><th>Finished</th><th>Summary</th></tr></thead>
+    <tbody>
+    {% for r in runs %}
+      <tr class="{{ 'row-fail' if r.summary and (r.summary.aborted or r.summary.skipped) else '' }}">
+        <td>{{ r.date }}</td>
+        <td>{{ r.started_at }}</td>
+        <td>{{ r.finished_at or '—' }}</td>
+        <td>
+          {% if r.summary is none %}running…
+          {% elif r.summary.skipped %}skipped: {{ r.summary.skipped }}
+          {% elif r.summary.aborted %}aborted: {{ r.summary.aborted }}
+          {% else %}
+            {{ r.summary.stocks|length }} stocks;
+            delivery {{ r.summary.delivery.sent if r.summary.delivery else 0 }} sent,
+            {{ r.summary.delivery.failed if r.summary.delivery else 0 }} failed
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No runs yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Alert delivery log</h2>
+  <div class="table-scroll">
+  <table class="grid">
+    <thead><tr><th>Date</th><th>Stock</th><th>Outcome</th><th>Status</th><th>Error</th></tr></thead>
+    <tbody>
+    {% for a in alerts %}
+      <tr class="{{ 'row-fail' if a.delivery_status == 'failed' else '' }}">
+        <td>{{ a.date }}</td><td>{{ a.ticker_nse }}</td><td>{{ a.outcome }}</td>
+        <td>{{ a.delivery_status }}</td><td>{{ a.error_text or '' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">No alerts sent yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+{% endblock %}

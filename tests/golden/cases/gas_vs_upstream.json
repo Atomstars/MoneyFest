@@ -1,0 +1,42 @@
+{
+  "_name": "gas_vs_upstream",
+  "beta": 1.0,
+  "date": "2026-07-10",
+  "evidence": [
+    {
+      "body_text": "NATURAL_GAS rose 3% on 2026-07-10",
+      "exchange_dissemination_at": null,
+      "factor_id": "NATURAL_GAS",
+      "first_seen_at": "2026-07-10T09:30:00+05:30",
+      "headline": "NATURAL_GAS rose 3% on 2026-07-10",
+      "id": 2,
+      "published_at": "2026-07-10T09:30:00+05:30",
+      "source": "src2",
+      "suspect_reactive": false,
+      "tier": 2,
+      "url": null
+    }
+  ],
+  "exposure_profile": [
+    {
+      "chain_template_text": "{factor} {dir} -> channel -> pnl {impact}.",
+      "channel": "output_price",
+      "condition_note": null,
+      "direction": "+1",
+      "factor_id": "NATURAL_GAS",
+      "pnl_line": "pnl",
+      "provenance": "template",
+      "status": "template",
+      "strength": "core"
+    }
+  ],
+  "gate_result": "INVESTIGATE",
+  "idio": 0.03,
+  "index_move": -0.002,
+  "move": 0.03,
+  "prev_trading_day": "2026-07-09",
+  "sigma_idio": 0.012,
+  "stock_id": 1,
+  "ticker": "TEST",
+  "vol_z": 1.5
+}

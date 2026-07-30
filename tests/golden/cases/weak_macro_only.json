@@ -1,0 +1,42 @@
+{
+  "_name": "weak_macro_only",
+  "beta": 1.0,
+  "date": "2026-07-10",
+  "evidence": [
+    {
+      "body_text": "Gold rose 0.2%",
+      "exchange_dissemination_at": null,
+      "factor_id": "GOLD",
+      "first_seen_at": "2026-07-10T09:30:00+05:30",
+      "headline": "Gold rose 0.2%",
+      "id": 2,
+      "published_at": "2026-07-10T09:30:00+05:30",
+      "source": "src2",
+      "suspect_reactive": false,
+      "tier": 2,
+      "url": null
+    }
+  ],
+  "exposure_profile": [
+    {
+      "chain_template_text": "{factor} {dir} -> channel -> pnl {impact}.",
+      "channel": "output_price",
+      "condition_note": null,
+      "direction": "+1",
+      "factor_id": "GOLD",
+      "pnl_line": "pnl",
+      "provenance": "template",
+      "status": "template",
+      "strength": "secondary"
+    }
+  ],
+  "gate_result": "INVESTIGATE",
+  "idio": -0.05,
+  "index_move": -0.002,
+  "move": -0.05,
+  "prev_trading_day": "2026-07-09",
+  "sigma_idio": 0.012,
+  "stock_id": 1,
+  "ticker": "TEST",
+  "vol_z": 1.5
+}

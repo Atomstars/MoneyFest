@@ -1,0 +1,16 @@
+{
+  "_name": "empty_evidence",
+  "beta": 1.0,
+  "date": "2026-07-10",
+  "evidence": [],
+  "exposure_profile": [],
+  "gate_result": "INVESTIGATE",
+  "idio": -0.045,
+  "index_move": -0.002,
+  "move": -0.045,
+  "prev_trading_day": "2026-07-09",
+  "sigma_idio": 0.012,
+  "stock_id": 1,
+  "ticker": "TEST",
+  "vol_z": 1.5
+}

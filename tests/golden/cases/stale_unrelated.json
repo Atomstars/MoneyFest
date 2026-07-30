@@ -1,0 +1,30 @@
+{
+  "_name": "stale_unrelated",
+  "beta": 1.0,
+  "date": "2026-07-10",
+  "evidence": [
+    {
+      "body_text": "Sector outlook piece from earlier in the week",
+      "exchange_dissemination_at": null,
+      "factor_id": null,
+      "first_seen_at": "2026-07-09T10:00:00+05:30",
+      "headline": "Sector outlook piece from earlier in the week",
+      "id": 3,
+      "published_at": "2026-07-09T10:00:00+05:30",
+      "source": "src3",
+      "suspect_reactive": false,
+      "tier": 3,
+      "url": null
+    }
+  ],
+  "exposure_profile": [],
+  "gate_result": "INVESTIGATE",
+  "idio": 0.06,
+  "index_move": -0.002,
+  "move": 0.06,
+  "prev_trading_day": "2026-07-09",
+  "sigma_idio": 0.012,
+  "stock_id": 1,
+  "ticker": "TEST",
+  "vol_z": 1.5
+}

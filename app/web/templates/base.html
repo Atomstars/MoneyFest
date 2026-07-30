@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Stock Impact Explainer{% endblock %}</title>
+  <link rel="stylesheet" href="/ui/static/style.css">
+  <script src="/ui/static/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/ui">Stock Impact Explainer</a>
+    {% if authed %}
+    <nav>
+      <a href="/ui">Dashboard</a>
+      <a href="/ui/ops">Ops</a>
+      <a href="/ui/logout">Log out</a>
+    </nav>
+    {% endif %}
+  </header>
+
+  <main class="wrap">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="disclaimer">{{ DISCLAIMER }}</footer>
+</body>
+</html>

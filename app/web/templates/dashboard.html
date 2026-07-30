@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Stock Impact Explainer{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Watchlist</h1>
+  <form method="get" action="/ui" class="datepick">
+    <label>Date <input type="date" name="date" value="{{ date }}"
+                       onchange="this.form.submit()"></label>
+    <noscript><button type="submit">Go</button></noscript>
+  </form>
+</div>
+
+{% if msg %}<p class="flash">{{ msg }}</p>{% endif %}
+
+<form method="post" action="/ui/add" class="addbox">
+  <input type="text" name="ticker" placeholder="Add NSE ticker (e.g. TCS)" required>
+  <button type="submit">Add</button>
+</form>
+
+{% if not rows %}
+  <p class="muted">No data yet. Add a stock, then run the EOD job from the
+    <a href="/ui/ops">Ops</a> page.</p>
+{% else %}
+<div class="cards">
+  {% for r in rows %}
+  <a class="card stock-card" href="/ui/stock/{{ r.stock_id }}?date={{ date }}">
+    <div class="card-top">
+      <span class="ticker">{{ r.ticker or r.name }}</span>
+      <span class="chip chip-{{ r.outcome_display|lower|replace('_','-') }}">{{ r.outcome_display }}</span>
+    </div>
+    <div class="name">{{ r.name }}</div>
+    <div class="move move-{{ r.move|movesign }}">{{ r.move|pct }}</div>
+    {% if r.teaser %}<p class="teaser">{{ r.teaser }}</p>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

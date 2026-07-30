@@ -1,0 +1,232 @@
+[
+  {
+    "name": "crude_vs_paints",
+    "stock_name": "Asian Paints",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "CRUDE_BRENT"
+    }
+  },
+  {
+    "name": "crude_fall_vs_paints",
+    "stock_name": "Berger Paints",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "CRUDE_BRENT"
+    }
+  },
+  {
+    "name": "crude_vs_ongc",
+    "stock_name": "ONGC",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "CRUDE_BRENT"
+    }
+  },
+  {
+    "name": "usdinr_vs_it",
+    "stock_name": "TCS",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "USDINR"
+    }
+  },
+  {
+    "name": "usdinr_vs_pharma",
+    "stock_name": "Sun Pharma",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "USDINR"
+    }
+  },
+  {
+    "name": "steel_vs_autos",
+    "stock_name": "Maruti Suzuki",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "STEEL_HRC"
+    }
+  },
+  {
+    "name": "coal_vs_cement",
+    "stock_name": "UltraTech Cement",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "COAL"
+    }
+  },
+  {
+    "name": "china_vs_metals",
+    "stock_name": "Tata Steel",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "CHINA_DEMAND"
+    }
+  },
+  {
+    "name": "atf_vs_aviation",
+    "stock_name": "IndiGo",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "AIRFARE_ATF"
+    }
+  },
+  {
+    "name": "gas_vs_upstream",
+    "stock_name": "ONGC",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "NATURAL_GAS"
+    }
+  },
+  {
+    "name": "gold_vs_jeweller",
+    "stock_name": "Titan",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "GOLD"
+    }
+  },
+  {
+    "name": "in10y_vs_nbfc",
+    "stock_name": "Bajaj Finance",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "IN_10Y"
+    }
+  },
+  {
+    "name": "us10y_vs_it",
+    "stock_name": "Infosys",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "US_10Y"
+    }
+  },
+  {
+    "name": "freight_vs_importer",
+    "stock_name": "Some Importer",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": "FREIGHT_RATES"
+    }
+  },
+  {
+    "name": "results_beat",
+    "stock_name": "HDFC Bank",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": null
+    }
+  },
+  {
+    "name": "results_miss",
+    "stock_name": "Wipro",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": null
+    }
+  },
+  {
+    "name": "order_win",
+    "stock_name": "HAL",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": null
+    }
+  },
+  {
+    "name": "fda_approval",
+    "stock_name": "Cipla",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": null
+    }
+  },
+  {
+    "name": "ratings_downgrade",
+    "stock_name": "Yes Bank",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": null
+    }
+  },
+  {
+    "name": "mgmt_resign",
+    "stock_name": "Some Co",
+    "expect": {
+      "kind": "ATTRIBUTED",
+      "top_factor": null
+    }
+  },
+  {
+    "name": "noise_tier3_reactive",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "empty_evidence",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "tier1_after_close",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "direction_mismatch",
+    "stock_name": "Asian Paints",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "tier3_rumour",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "weak_macro_only",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "contradicting_tier1",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "afterhours_opinion",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "factor_not_in_profile",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  },
+  {
+    "name": "stale_unrelated",
+    "stock_name": "Random Co",
+    "expect": {
+      "kind": "NO_DRIVER"
+    }
+  }
+]

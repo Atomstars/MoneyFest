@@ -1,0 +1,254 @@
+# Canonical factor registry -- the CLOSED vocabulary.
+# =====================================================================
+# FIRST DRAFT FOR HUMAN REVIEW. These seeds are curator starting points,
+# not ratified truth. Review keywords and series_source before production.
+# =====================================================================
+# The agent (Phase 2) can ONLY ever reference a factor listed here.
+# kind: series  -> fetched daily (Tier-2), an observation becomes evidence
+#                  when |move| >= that factor's own 60d 1-sigma.
+# kind: event   -> matched by the Tier-3 keyword tagger on ingested news.
+# series_source is advisory in Phase 1 (Tier-2 ingestor uses yfinance symbols
+# where available; event factors have null series_source).
+
+version: factors-v1-draft
+
+factors:
+  - id: CRUDE_BRENT
+    name: Brent Crude Oil
+    kind: series
+    series_source: "BZ=F"
+    unit: USD/bbl
+    keywords: [brent, crude, crude oil, oil price, opec, wti]
+    description: Global crude oil benchmark; input cost for many manufacturers.
+
+  - id: USDINR
+    name: USD/INR Exchange Rate
+    kind: series
+    series_source: "INR=X"
+    unit: INR per USD
+    keywords: [rupee, usdinr, dollar-rupee, currency, forex, inr depreciation, rupee weakness]
+    description: Rupee vs US dollar; drives exporter revenue and importer cost.
+
+  - id: NIFTY50
+    name: NIFTY 50 Index
+    kind: series
+    series_source: "^NSEI"
+    unit: index
+    keywords: [nifty, nifty50, benchmark, broad market, sensex]
+    description: Broad-market benchmark; the beta reference for the gate.
+
+  - id: RBI_REPO
+    name: RBI Repo Rate
+    kind: event
+    series_source: null
+    unit: percent
+    keywords: [repo rate, rbi, monetary policy, mpc, rate hike, rate cut, policy rate]
+    description: RBI policy rate decisions; funding-cost driver for lenders.
+
+  - id: IN_10Y
+    name: India 10Y G-Sec Yield
+    kind: series
+    series_source: null
+    unit: percent
+    keywords: [10-year, g-sec, bond yield, gsec, government bond, yields]
+    description: Benchmark sovereign yield; discount-rate and NBFC funding proxy.
+
+  - id: US_FED
+    name: US Federal Reserve Policy
+    kind: event
+    series_source: null
+    unit: percent
+    keywords: [federal reserve, fed, fomc, us rates, powell, us interest rate]
+    description: US monetary policy; global risk appetite and IT-demand signal.
+
+  - id: GOLD
+    name: Gold Price
+    kind: series
+    series_source: "GC=F"
+    unit: USD/oz
+    keywords: [gold, bullion, gold price]
+    description: Gold benchmark; jewellery input cost and financier collateral.
+
+  - id: STEEL_HRC
+    name: Steel (Hot-Rolled Coil)
+    kind: series
+    series_source: null
+    unit: INR/tonne
+    keywords: [steel, hrc, hot-rolled, steel prices, flat steel]
+    description: Steel benchmark; input cost for autos, appliances, construction.
+
+  - id: COAL
+    name: Coal Price
+    kind: series
+    series_source: null
+    unit: USD/tonne
+    keywords: [coal, thermal coal, coking coal, coal prices]
+    description: Coal benchmark; power-generation and cement input cost.
+
+  - id: IT_DEMAND_US
+    name: US IT / Discretionary Tech Demand
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [it spending, tech budget, discretionary spend, deal wins, bfsi demand, furlough]
+    description: US enterprise tech-spend climate; core IT-services revenue driver.
+
+  - id: MONSOON
+    name: Monsoon / Rainfall
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [monsoon, rainfall, imd, kharif, rural demand, drought, la nina, el nino]
+    description: Monsoon outturn; rural-demand and agri-input driver.
+
+  - id: GST_POLICY
+    name: GST Policy Change
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [gst, gst council, indirect tax, tax slab, cess]
+    description: GST rate/slab changes; demand and pricing driver.
+
+  - id: UNION_BUDGET
+    name: Union Budget
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [union budget, budget, fiscal, capex allocation, finance minister]
+    description: Annual budget; sector allocations and tax changes.
+
+  - id: EXPORT_POLICY
+    name: Export / Import Policy
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [export ban, export duty, import duty, tariff, quota, dgft, export incentive]
+    description: Trade-policy changes; export realisations and input availability.
+
+  - id: FREIGHT_RATES
+    name: Ocean Freight Rates
+    kind: series
+    series_source: null
+    unit: index
+    keywords: [freight, shipping rates, container, baltic dry, red sea, suez, logistics cost]
+    description: Ocean-freight benchmark; logistics cost for importers/exporters.
+
+  - id: CHINA_DEMAND
+    name: China Demand / Dumping
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [china demand, chinese dumping, china stimulus, china slowdown, anti-dumping]
+    description: Chinese demand and dumping; commodity price and competition driver.
+
+  - id: EV_POLICY
+    name: EV / Auto Policy
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [ev, electric vehicle, fame, ev subsidy, emission norm, cafe norms]
+    description: EV incentives and emission norms; auto and battery demand driver.
+
+  - id: TELECOM_TARIFF
+    name: Telecom Tariff
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [tariff hike, arpu, telecom tariff, spectrum, agr]
+    description: Telecom tariff moves; ARPU and revenue driver.
+
+  - id: DEFENCE_ORDERS
+    name: Defence Orders / Policy
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [defence order, defence budget, indigenisation, mod, order inflow, emergency procurement]
+    description: Defence procurement; order-book driver for defence PSUs.
+
+  - id: PSU_DIVESTMENT
+    name: PSU Divestment / Stake Sale
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [divestment, disinvestment, stake sale, ofs, privatisation, strategic sale]
+    description: Government stake sales; supply-overhang and re-rating driver.
+
+  - id: NATURAL_GAS
+    name: Natural Gas Price
+    kind: series
+    series_source: "NG=F"
+    unit: USD/mmBtu
+    keywords: [natural gas, lng, gas price, apm gas]
+    description: Gas benchmark; input cost for fertilisers, gas utilities, CGD.
+
+  - id: DXY
+    name: US Dollar Index
+    kind: series
+    series_source: "DX-Y.NYB"
+    unit: index
+    keywords: [dollar index, dxy, greenback]
+    description: Broad dollar strength; EM-flow and commodity-price driver.
+
+  - id: US_10Y
+    name: US 10Y Treasury Yield
+    kind: series
+    series_source: "^TNX"
+    unit: percent
+    keywords: [us 10-year, treasury yield, us yields, term premium]
+    description: US benchmark yield; global discount-rate and FII-flow driver.
+
+  - id: CEMENT_PRICE
+    name: Cement Price
+    kind: event
+    series_source: null
+    unit: INR/bag
+    keywords: [cement price, cement realisation, bag price]
+    description: Cement realisation; output-price driver for cement makers.
+
+  - id: RURAL_DEMAND
+    name: Rural Demand
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [rural demand, rural recovery, tractor sales, two-wheeler demand, mnrega]
+    description: Rural consumption climate; FMCG, autos and agri driver.
+
+  - id: REGULATORY_RBI
+    name: RBI Regulatory Action
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [rbi curb, rbi penalty, risk weight, provisioning norm, embargo, ban on onboarding]
+    description: RBI supervisory/regulatory actions on lenders.
+
+  - id: FUEL_MARKETING_MARGIN
+    name: Fuel Retail Marketing Margin
+    kind: event
+    series_source: null
+    unit: INR/litre
+    keywords: [marketing margin, fuel price freeze, under-recovery, opm, petrol diesel price]
+    description: OMC retail marketing margin; pricing-regime dependent.
+
+  - id: DRUG_PRICING_US
+    name: US Generic Drug Pricing / FDA
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [usfda, fda warning, price erosion, anda, generic pricing, import alert]
+    description: US generic pricing and FDA actions; pharma export driver.
+
+  - id: AIRFARE_ATF
+    name: Aviation Turbine Fuel
+    kind: series
+    series_source: null
+    unit: INR/kl
+    keywords: [atf, jet fuel, aviation turbine fuel, fuel surcharge]
+    description: Jet-fuel cost; dominant airline input cost.
+
+  - id: POWER_DEMAND
+    name: Power Demand / Merchant Tariff
+    kind: event
+    series_source: null
+    unit: qualitative
+    keywords: [power demand, peak demand, merchant tariff, iex price, plant load factor]
+    description: Electricity demand and merchant tariffs; power-utility driver.

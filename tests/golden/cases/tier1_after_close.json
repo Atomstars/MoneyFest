@@ -1,0 +1,30 @@
+{
+  "_name": "tier1_after_close",
+  "beta": 1.0,
+  "date": "2026-07-10",
+  "evidence": [
+    {
+      "body_text": "Board meeting scheduled next week",
+      "exchange_dissemination_at": "2026-07-10T19:30:00+05:30",
+      "factor_id": null,
+      "first_seen_at": "2026-07-10T19:30:00+05:30",
+      "headline": "Board meeting scheduled next week",
+      "id": 1,
+      "published_at": "2026-07-10T19:30:00+05:30",
+      "source": "src1",
+      "suspect_reactive": false,
+      "tier": 1,
+      "url": null
+    }
+  ],
+  "exposure_profile": [],
+  "gate_result": "INVESTIGATE",
+  "idio": -0.05,
+  "index_move": -0.002,
+  "move": -0.05,
+  "prev_trading_day": "2026-07-09",
+  "sigma_idio": 0.012,
+  "stock_id": 1,
+  "ticker": "TEST",
+  "vol_z": 1.5
+}

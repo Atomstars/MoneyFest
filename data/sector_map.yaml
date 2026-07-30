@@ -1,0 +1,72 @@
+# Ticker -> sector-template mapping (hand-maintained).
+# =====================================================================
+# MAINTAINED BY HAND. Onboarding assigns a stock's sector by looking up its
+# NSE ticker here. Sector values must match a key in data/sector_templates.yaml.
+# Unmapped tickers onboard with sector_id=NULL -> empty exposure profile ->
+# only the event trigger produces rich output (this is correct behaviour).
+# =====================================================================
+version: sector-map-v1
+
+map:
+  TCS: IT_SERVICES
+  INFY: IT_SERVICES
+  WIPRO: IT_SERVICES
+  HCLTECH: IT_SERVICES
+  TECHM: IT_SERVICES
+  HDFCBANK: BANKS_PRIVATE
+  ICICIBANK: BANKS_PRIVATE
+  AXISBANK: BANKS_PRIVATE
+  KOTAKBANK: BANKS_PRIVATE
+  SBIN: BANKS_PSU
+  BANKBARODA: BANKS_PSU
+  PNB: BANKS_PSU
+  BAJFINANCE: NBFC
+  BAJAJFINSV: NBFC
+  CHOLAFIN: NBFC
+  ASIANPAINT: PAINTS
+  BERGEPAINT: PAINTS
+  KANSAINER: PAINTS
+  IOC: OMC
+  BPCL: OMC
+  HINDPETRO: OMC
+  ONGC: UPSTREAM_OIL
+  OIL: UPSTREAM_OIL
+  MARUTI: AUTOS
+  TATAMOTORS: AUTOS
+  M&M: AUTOS
+  BAJAJ-AUTO: AUTOS
+  HEROMOTOCO: AUTOS
+  APOLLOTYRE: TYRES
+  MRF: TYRES
+  CEATLTD: TYRES
+  SUNPHARMA: PHARMA
+  DRREDDY: PHARMA
+  CIPLA: PHARMA
+  LUPIN: PHARMA
+  HINDUNILVR: FMCG
+  ITC: FMCG
+  NESTLEIND: FMCG
+  BRITANNIA: FMCG
+  DABUR: FMCG
+  TATASTEEL: METALS_STEEL
+  JSWSTEEL: METALS_STEEL
+  SAIL: METALS_STEEL
+  HINDALCO: METALS_STEEL
+  ULTRACEMCO: CEMENT
+  SHREECEM: CEMENT
+  AMBUJACEM: CEMENT
+  ACC: CEMENT
+  DLF: REALTY
+  GODREJPROP: REALTY
+  OBEROIRLTY: REALTY
+  INDIGO: AVIATION
+  SPICEJET: AVIATION
+  NTPC: POWER
+  POWERGRID: POWER
+  TATAPOWER: POWER
+  HAL: DEFENCE
+  BEL: DEFENCE
+  BDL: DEFENCE
+  MAZDOCK: DEFENCE
+  BHARTIARTL: TELECOM
+  IDEA: TELECOM

@@ -1,0 +1,28 @@
+# NSE ticker -> BSE scrip code (hand-maintained).
+# =====================================================================
+# MAINTAINED BY HAND, AND VERIFIED. This map is how Tier-1 BSE corporate
+# announcements get attached to a stock. A WRONG CODE HERE SILENTLY ATTACHES
+# ANOTHER COMPANY'S FILINGS to this stock -- which is the "confidently wrong"
+# failure mode DESIGN.md section 7.2 says the product cannot survive.
+#
+# So: never guess a code. Verify every entry before adding it:
+#
+#   python -m app.ingest.nse_bse --verify-scrip 500325
+#
+# and confirm the returned company name matches the stock you intend. Only
+# entries verified this way belong in this file.
+#
+# Tickers absent from this map simply get no Tier-1 BSE evidence (correct,
+# conservative behaviour) -- they are not an error. NSE is ingested separately
+# and keys off the NSE ticker, so it needs no entry here.
+# =====================================================================
+version: bse-scrip-map-v1
+
+# Verified 2026-07-30 against api.bseindia.com getScripHeaderData (name shown).
+map:
+  TCS: "532540"          # Tata Consultancy Services Ltd
+  ASIANPAINT: "500820"   # Asian Paints Ltd
+  ONGC: "500312"         # Oil and Natural Gas Corporation Ltd
+  HDFCBANK: "500180"     # HDFC Bank Ltd
+  MARUTI: "532500"       # Maruti Suzuki India Ltd
+  RELIANCE: "500325"     # Reliance Industries Ltd

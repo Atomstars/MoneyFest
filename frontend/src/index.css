@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Design tokens.
+
+   Colours are the validated data-viz reference palette (both modes selected,
+   not auto-flipped). The categorical slots passed the six checks at 6 series in
+   BOTH modes: worst adjacent CVD dE 9.1 light / 8.4 dark, worst adjacent
+   normal-vision dE 19.6 light / 19.3 dark.
+
+   Light mode carries a contrast WARN on three slots (aqua/yellow/magenta sit
+   below 3:1 on the light surface), so the relief rule applies: every chart using
+   them ships visible direct labels and a table view. That is why the allocation
+   donut always renders its legend with names and values -- it is an
+   accessibility requirement, not decoration.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --surface-1: #fcfcfb;          /* chart + card surface */
+  --plane:     #f9f9f7;          /* page plane */
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border:   rgba(11, 11, 11, 0.10);
+
+  /* Categorical slots, fixed order -- assigned by entity, never cycled. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+
+  /* Status -- reserved, never reused as a series colour. */
+  --good:     #0ca30c;
+  --warning:  #fab219;
+  --serious:  #ec835a;
+  --critical: #d03b3b;
+
+  /* Money direction. These are the palette's designated delta steps (success text
+     green / critical red), not categorical slots -- P&L sign is a status, not a
+     series. Indian investors read green/red as gain/loss, so the app follows that
+     convention for MONEY only; outcome chips stay neutral so the explanation
+     layer never colours as a buy/sell signal. */
+  --up:   #006300;
+  --down: #d03b3b;
+
+  --radius: 14px;
+  --shadow-card: 0 1px 2px rgba(11,11,11,0.04), 0 8px 24px -12px rgba(11,11,11,0.10);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --border:   rgba(255, 255, 255, 0.10);
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+
+    --up:   #0ca30c;
+    --down: #e66767;
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --plane:     #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --border:   rgba(255, 255, 255, 0.10);
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+
+  --up:   #0ca30c;
+  --down: #e66767;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+}
+
+@theme inline {
+  --color-surface: var(--surface-1);
+  --color-plane: var(--plane);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+  --color-line: var(--border);
+  --color-grid: var(--gridline);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --radius-card: var(--radius);
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--plane);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures only where columns must align vertically (table rows, axis
+   ticks). Hero numbers keep proportional figures per the type spec. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+/* Focus ring: visible, consistent, never removed. */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .32s cubic-bezier(.22,.61,.36,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

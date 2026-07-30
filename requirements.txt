@@ -1,0 +1,20 @@
+# Phase 1 -- deterministic layer. No ML, no factor-model libraries.
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+jinja2>=3.1               # server-rendered UI templates (Phase 4)
+itsdangerous>=2.1         # signed-cookie support
+python-multipart>=0.0.9   # form handling for the UI
+# htmx is vendored at app/web/static/htmx.min.js -- no CDN, no npm, no build step.
+PyYAML>=6.0
+tzdata>=2024.1            # IANA tz database (Windows has no system zoneinfo)
+yfinance>=0.2.40
+httpx>=0.27
+feedparser>=6.0
+APScheduler>=3.10
+groq>=1.6                 # default LLM backend (free tier) -- see app/llm.py
+anthropic>=0.40           # optional LLM backend; set LLM_PROVIDER=anthropic to use it
+pytest>=8.0
+
+# The quantitative gate (app/tools/gate.py) is pure standard-library, so the
+# gate tests run with just `pytest` even if the networked deps above are absent.

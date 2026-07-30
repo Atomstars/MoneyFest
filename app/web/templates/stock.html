@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% set s = header.stock %}
+{% block title %}{{ s.ticker_nse or s.name }} · {{ date }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1>{{ s.name }}</h1>
+    <div class="muted">
+      {{ s.ticker_nse or '—' }}{% if s.ticker_bse %} · BSE {{ s.ticker_bse }}{% endif %}
+      · {{ s.sector or 'no sector' }}
+      · <a href="/ui/stock/{{ s.id }}/profile">exposure profile</a>
+    </div>
+  </div>
+  <div class="move-big move-{{ header.gate.ret|movesign }}">{{ header.gate.ret|pct }}</div>
+</div>
+
+{% if history %}
+<div class="history-strip" title="Last {{ history|length }} trading days">
+  {% for h in history %}
+    <a class="hchip chip-{{ h.outcome_display|lower|replace('_','-') }}"
+       href="/ui/stock/{{ s.id }}?date={{ h.date }}" title="{{ h.date }} · {{ h.outcome_display }}"></a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<details class="how">
+  <summary>How we decided</summary>
+  <table class="kv">
+    <tr><th>Day's move</th><td>{{ header.gate.ret|pct }}</td></tr>
+    <tr><th>Index move</th><td>{{ header.gate.index_ret|pct }}</td></tr>
+    <tr><th>Typical sensitivity (beta)</th><td>{{ '%.2f'|format(header.gate.beta60) if header.gate.beta60 is not none else '—' }}</td></tr>
+    <tr><th>Stock-specific move (idio)</th><td>{{ header.gate.idio_ret|pct }}</td></tr>
+    <tr><th>Normal daily range (1σ)</th><td>{{ header.gate.sigma60|pct }}</td></tr>
+    <tr><th>Idiosyncratic range (1σ)</th><td>{{ header.gate.sigma_idio|pct }}</td></tr>
+    <tr><th>Volume vs normal (z)</th><td>{{ '%.1f'|format(header.gate.vol_zscore) if header.gate.vol_zscore is not none else '—' }}</td></tr>
+    <tr><th>Gate result</th><td>{{ header.gate.gate_result }}</td></tr>
+  </table>
+</details>
+
+<section class="card">
+  <div class="card-top">
+    <h2>Explanation</h2>
+    <span class="chip chip-{{ detail.outcome_display|lower|replace('_','-') }}">{{ detail.outcome_display }}</span>
+  </div>
+  {% if detail.rendered_text %}
+    <div class="rendered">{{ detail.rendered_text }}</div>
+  {% else %}
+    <p class="muted">No explanation recorded for this date.</p>
+  {% endif %}
+  {% if detail.model_version %}<p class="prov">Produced by: {{ detail.model_version }}</p>{% endif %}
+</section>
+
+{% if detail.drivers %}
+<h2>Drivers</h2>
+{% for d in detail.drivers %}
+<section class="card driver">
+  <div class="card-top">
+    <span class="rank">#{{ d.rank }}</span>
+    <span class="pill dir-{{ d.direction }}">{{ d.direction }} for this stock</span>
+    <span class="badge conf-{{ d.confidence|lower }}">{{ d.confidence }}</span>
+  </div>
+  {% if d.confidence_reason %}<p class="conf-reason">{{ d.confidence_reason }}</p>{% endif %}
+  <p class="chain">{{ d.chain_text }}</p>
+  {% if d.factor_id %}<p class="muted">Factor: {{ d.factor_id }}</p>{% endif %}
+  <ul class="evidence">
+    {% for e in d.evidence %}
+    <li>
+      <span class="tier">{{ e.tier_label }}</span>
+      {% if e.url %}<a href="{{ e.url }}" rel="noopener noreferrer" target="_blank">{{ e.headline }}</a>
+      {% else %}{{ e.headline }}{% endif %}
+      <span class="evmeta">{{ e.source }} · {{ e.dissemination_ist or e.first_seen_ist }}</span>
+      {% if e.suspect_reactive %}<span class="tag reactive">published after the move started</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endif %}
+
+{% endblock %}
