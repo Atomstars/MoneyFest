@@ -333,6 +333,200 @@ def get_prices(stock_id: int, days: int = 90,
     return [dict(r) for r in rows][::-1]
 
 
+# --- Market context: indices and the day's movers ---------------------------
+
+@app.get("/market/indices")
+def market_indices(force: bool = Query(False),
+                   _: None = Depends(require_token)) -> dict:
+    from app.marketdata.market import get_indices
+    return get_indices(_conn(), force=force)
+
+
+@app.get("/market/movers")
+def market_movers(force: bool = Query(False),
+                  _: None = Depends(require_token)) -> dict:
+    from app.marketdata.market import get_movers
+    return get_movers(_conn(), force=force)
+
+
+# --- Universe: the browsable NSE+BSE catalogue -----------------------------
+# `security` is what EXISTS on the exchanges (~5,000 rows); `stock` is what this app
+# ANALYSES (dozens). Tracking is the one-way door between them -- see app/universe.py.
+
+@app.get("/universe/search")
+def universe_search(q: str = Query(..., min_length=1),
+                    exchange: str | None = Query(None, pattern="^(NSE|BSE)$"),
+                    limit: int = Query(25, ge=1, le=100),
+                    _: None = Depends(require_token)) -> dict:
+    from app.universe import search
+    return {"query": q, "results": search(_conn(), q, limit=limit, exchange=exchange)}
+
+
+@app.get("/universe/stats")
+def universe_stats(_: None = Depends(require_token)) -> dict:
+    """Coverage counters, so an empty search reads as 'not synced' not 'no match'."""
+    conn = _conn()
+    row = conn.execute(
+        """SELECT COUNT(*) AS total,
+                  SUM(CASE WHEN exchanges LIKE '%NSE%' THEN 1 ELSE 0 END) AS nse,
+                  SUM(CASE WHEN exchanges LIKE '%BSE%' THEN 1 ELSE 0 END) AS bse,
+                  SUM(CASE WHEN stock_id IS NOT NULL THEN 1 ELSE 0 END) AS tracked,
+                  MAX(synced_at) AS synced_at
+           FROM security WHERE status='Active'"""
+    ).fetchone()
+    return dict(row)
+
+
+@app.get("/universe/{isin}")
+def universe_detail(isin: str, _: None = Depends(require_token)) -> dict:
+    from app.universe import get_security
+    sec = get_security(_conn(), isin)
+    if sec is None:
+        raise HTTPException(404, f"unknown ISIN {isin!r}")
+    return sec
+
+
+class TrackIn(BaseModel):
+    isin: str
+    watchlist: bool = True
+
+
+@app.post("/universe/track")
+def universe_track(body: TrackIn, _: None = Depends(require_token)) -> dict:
+    """Promote a catalogue entry to a tracked stock. Does NOT backfill.
+
+    Warming up history takes several seconds and would make this call feel broken.
+    The client follows up with POST /stocks/{id}/backfill and renders a warming state,
+    so the wait is visible rather than hidden inside a hanging request.
+    """
+    from app.jobs.backfill import history_status
+    from app.universe import promote
+    from app.watchlist import add_to_watchlist
+
+    conn = _conn()
+    try:
+        stock_id = promote(conn, body.isin)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    if body.watchlist:
+        add_to_watchlist(conn, stock_id)
+    return {"stock_id": stock_id, "isin": body.isin,
+            "history": history_status(conn, stock_id)}
+
+
+@app.delete("/universe/track/{stock_id}")
+def universe_untrack(stock_id: int, _: None = Depends(require_token)) -> dict:
+    """Drop a stock from the watchlist.
+
+    Price history, gate rows and any attribution are deliberately kept: they are
+    expensive to rebuild, they are what makes re-tracking instant, and deleting the
+    audit trail of what the engine once concluded is not something an untrack click
+    should do. A holding blocks removal -- silently untracking something the user owns
+    would strand it out of the portfolio valuation.
+    """
+    conn = _conn()
+    held = conn.execute("SELECT 1 FROM holding WHERE stock_id=?", (stock_id,)).fetchone()
+    if held:
+        raise HTTPException(400, "cannot untrack a stock you hold; remove the holding first")
+    conn.execute("DELETE FROM watchlist_item WHERE stock_id=?", (stock_id,))
+    conn.commit()
+    return {"untracked": stock_id}
+
+
+# --- Stock detail: quote, fundamentals, shareholding -----------------------
+# All display-only. None of it feeds the gate or the attribution bundle -- see the
+# module docstring in app/marketdata/__init__.py for why that boundary is enforced.
+
+@app.get("/stocks/{stock_id}/overview")
+def stock_overview(stock_id: int, _: None = Depends(require_token)) -> dict:
+    """Everything the detail-page header needs, in one round trip."""
+    from app.jobs.backfill import history_status
+    from app.marketdata import get_quote
+    from app.marketdata.windows import return_windows, series_stats
+    from app.universe import find_security_for_stock
+
+    conn = _conn()
+    stock = conn.execute(
+        """SELECT s.id, s.name, s.ticker_nse, s.ticker_bse, sec.name AS sector
+           FROM stock s LEFT JOIN sector sec ON sec.id = s.sector_id
+           WHERE s.id=?""",
+        (stock_id,),
+    ).fetchone()
+    if stock is None:
+        raise HTTPException(404, f"unknown stock {stock_id}")
+
+    series = [(r["date"], r["close"]) for r in conn.execute(
+        """SELECT date, close FROM daily_metric
+           WHERE stock_id=? AND close IS NOT NULL ORDER BY date""",
+        (stock_id,),
+    ).fetchall()]
+
+    latest = conn.execute(
+        """SELECT date, gate_result FROM daily_metric
+           WHERE stock_id=? ORDER BY date DESC LIMIT 1""",
+        (stock_id,),
+    ).fetchone()
+    held = conn.execute("SELECT qty, avg_cost FROM holding WHERE stock_id=?",
+                        (stock_id,)).fetchone()
+    watched = conn.execute("SELECT 1 FROM watchlist_item WHERE stock_id=?",
+                           (stock_id,)).fetchone()
+
+    return {
+        "stock": dict(stock),
+        "security": find_security_for_stock(conn, stock_id),
+        "quote": get_quote(conn, stock_id),
+        "windows": return_windows(series),
+        "range": series_stats(series),
+        "history": history_status(conn, stock_id),
+        "gate_result": latest["gate_result"] if latest else None,
+        "gate_date": latest["date"] if latest else None,
+        "holding": dict(held) if held else None,
+        "watched": bool(watched),
+    }
+
+
+@app.get("/stocks/{stock_id}/quote")
+def stock_quote(stock_id: int, force: bool = Query(False),
+                _: None = Depends(require_token)) -> dict:
+    from app.marketdata import get_quote
+    return get_quote(_conn(), stock_id, force=force)
+
+
+@app.get("/stocks/{stock_id}/fundamentals")
+def stock_fundamentals(stock_id: int, force: bool = Query(False),
+                       _: None = Depends(require_token)) -> dict:
+    """Key stats, income statement and company profile.
+
+    Each block is independently nullable: these are three separate third-party calls
+    and one failing must not blank the other two.
+    """
+    from app.marketdata import get_financials, get_key_stats, get_profile
+    conn = _conn()
+    return {
+        "key_stats": get_key_stats(conn, stock_id, force=force),
+        "financials": get_financials(conn, stock_id, force=force),
+        "profile": get_profile(conn, stock_id, force=force),
+    }
+
+
+@app.get("/stocks/{stock_id}/shareholding")
+def stock_shareholding(stock_id: int, force: bool = Query(False),
+                       _: None = Depends(require_token)) -> dict:
+    from app.marketdata import get_shareholding
+    data = get_shareholding(_conn(), stock_id, force=force)
+    if data is None:
+        raise HTTPException(404, "no shareholding data available for this stock")
+    return data
+
+
+@app.post("/stocks/{stock_id}/backfill")
+def stock_backfill(stock_id: int, force: bool = Query(False),
+                   _: None = Depends(require_token)) -> dict:
+    """Warm price history so the gate can classify. Synchronous, ~3-8 seconds."""
+    from app.jobs.backfill import ensure_history
+    return ensure_history(_conn(), stock_id, force=force)
+
+
 # Mount the server-rendered UI and its vendored static assets.
 from pathlib import Path as _Path  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402

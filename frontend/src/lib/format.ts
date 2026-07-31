@@ -28,14 +28,48 @@ export function signedPct(v: number | null | undefined, digits = 2): string {
   return `${sign}${(Math.abs(v) * 100).toFixed(digits)}%`
 }
 
-/** Compact form for axis ticks: ₹1.2L, ₹3.4Cr. */
+/** Compact form for axis ticks: ₹1.2L, ₹3.4Cr.
+ *
+ *  Thousands are printed in full (₹2,900), NOT as ₹3k. A stock chart's whole
+ *  y-range is often a few hundred rupees wide, so rounding to the nearest thousand
+ *  labelled every gridline on a TCS chart "₹3k" — four identical ticks and no
+ *  readable scale. Lakh and crore only kick in where the digits stop being useful. */
 export function compactMoney(v: number | null | undefined): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—'
   const a = Math.abs(v)
   if (a >= 1e7) return `₹${(v / 1e7).toFixed(1)}Cr`
-  if (a >= 1e5) return `₹${(v / 1e5).toFixed(1)}L`
-  if (a >= 1e3) return `₹${(v / 1e3).toFixed(0)}k`
-  return `₹${v.toFixed(0)}`
+  if (a >= 1e5) return `₹${(v / 1e5).toFixed(2)}L`
+  return `₹${inr.format(Math.round(v))}`
+}
+
+/** Large rupee amounts the way Indian filings state them: crore, then lakh crore.
+ *  Used for market cap and revenue, where the raw digit string is unreadable. */
+export function croreMoney(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—'
+  const a = Math.abs(v)
+  if (a >= 1e12) return `₹${(v / 1e12).toFixed(2)} L Cr`
+  if (a >= 1e7) return `₹${inr.format(Math.round(v / 1e7))} Cr`
+  if (a >= 1e5) return `₹${(v / 1e5).toFixed(2)} L`
+  return money(v)
+}
+
+/** A plain count with Indian digit grouping (employees, shareholder counts). */
+export function count(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—'
+  return inr.format(v)
+}
+
+/** A ratio like P/E that is a multiple, not a percentage or an amount. */
+export function ratio(v: number | null | undefined, digits = 2): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—'
+  return v.toFixed(digits)
+}
+
+/** Quarter label from an ISO period end: '2026-06-30' -> 'Jun 2026'. */
+export function periodLabel(iso: string): string {
+  const d = new Date(iso + 'T00:00:00')
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
 }
 
 export function shortDate(iso: string): string {

@@ -9,6 +9,10 @@ arguments back out. Two backends are supported, selected by ``app.config.LLM_PRO
 * ``"groq"`` (default) -- free-tier, OpenAI-compatible ``/chat/completions`` API.
   Tool forcing: ``tool_choice={"type": "function", "function": {"name": ...}}``;
   arguments arrive as a JSON *string* in ``choices[0].message.tool_calls[0].function``.
+* ``"nvidia"`` -- NVIDIA NIM at integrate.api.nvidia.com, serving open-weight models
+  (Llama Nemotron Super by default). Same OpenAI tool-calling shape as Groq, called
+  over plain httpx. Its daily budget is far more generous than Groq's 100k-token
+  ceiling, which is the limit that has repeatedly stalled golden-set validation.
 * ``"anthropic"`` -- forced ``tool_choice={"type": "tool", "name": ...}``; arguments
   arrive already-parsed in the ``tool_use`` content block's ``input``.
 
@@ -203,6 +207,139 @@ def _call_groq(
                    f"(finish_reason={choice.finish_reason!r})")
 
 
+def _openai_tool_payload(*, model: str, system: str, user: str, schema: dict,
+                         tool_name: str, tool_description: str,
+                         max_tokens: int) -> dict:
+    """The request body shared by every OpenAI-compatible provider."""
+    return {
+        "model": model,
+        "max_tokens": max_tokens,
+        "temperature": 0,  # structured extraction, not generation
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "tools": [{
+            "type": "function",
+            "function": {
+                "name": tool_name,
+                "description": tool_description,
+                "parameters": schema,
+            },
+        }],
+        "tool_choice": {"type": "function", "function": {"name": tool_name}},
+    }
+
+
+def _parse_openai_tool_response(body: dict, *, model: str, tool_name: str) -> dict:
+    """Pull the forced call's arguments out of an OpenAI-shaped JSON response."""
+    choices = body.get("choices") or []
+    if not choices:
+        raise LLMError(f"model {model} returned no choices: {str(body)[:300]}")
+    message = choices[0].get("message") or {}
+    for call in message.get("tool_calls") or []:
+        function = call.get("function") or {}
+        if function.get("name") != tool_name:
+            continue
+        args = function.get("arguments")
+        if isinstance(args, dict):
+            return args
+        try:
+            return json.loads(args)
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise LLMError(
+                f"model {model} returned malformed tool arguments: {exc}"
+            ) from exc
+    raise LLMError(
+        f"model {model} returned no tool call for {tool_name!r} "
+        f"(finish_reason={choices[0].get('finish_reason')!r}). "
+        f"Content was: {str(message.get('content'))[:200]!r}"
+    )
+
+
+def _call_nvidia(
+    *, model: str, system: str, user: str, schema: dict,
+    tool_name: str, tool_description: str, max_tokens: int,
+) -> dict:
+    """NVIDIA NIM (integrate.api.nvidia.com) via its OpenAI-compatible endpoint.
+
+    Uses httpx directly rather than pulling in the ``openai`` SDK: the request is one
+    JSON POST, httpx is already a dependency, and doing it by hand is what lets us set
+    ``chat_template_kwargs`` -- which the OpenAI SDK has no typed slot for and which is
+    how Nemotron's reasoning mode is switched off.
+
+    Why thinking is off by default: Nemotron is a reasoning model, and its thinking
+    preamble both burns the token budget and competes with the forced tool call for
+    the output slot. Structured extraction of this kind does not need it -- the same
+    reasoning that keeps Anthropic's extended thinking disabled on the other path.
+    """
+    import os
+
+    import httpx
+
+    from app.config import NVIDIA_BASE_URL, NVIDIA_REASONING_BUDGET, NVIDIA_THINKING
+
+    api_key = os.environ.get("NVIDIA_API_KEY")
+    if not api_key:
+        raise LLMError(
+            "NVIDIA_API_KEY is not set. Get a key at https://build.nvidia.com/ "
+            "(free tier) and export NVIDIA_API_KEY, or select another backend with "
+            "LLM_PROVIDER=groq|anthropic."
+        )
+
+    payload = _openai_tool_payload(
+        model=model, system=system, user=user, schema=schema,
+        tool_name=tool_name, tool_description=tool_description, max_tokens=max_tokens,
+    )
+    # NIM's own spelling. ``thinking`` (without the prefix) is accepted and silently
+    # ignored, so the wrong key looks like it works while changing nothing.
+    payload["chat_template_kwargs"] = {"enable_thinking": NVIDIA_THINKING}
+    if NVIDIA_THINKING:
+        payload["reasoning_budget"] = NVIDIA_REASONING_BUDGET
+
+    last_exc: Exception | None = None
+    for attempt in range(GROQ_MAX_RETRIES + 1):
+        try:
+            resp = httpx.post(
+                f"{NVIDIA_BASE_URL}/chat/completions",
+                json=payload,
+                headers={"Authorization": f"Bearer {api_key}",
+                         "Accept": "application/json"},
+                timeout=GROQ_REQUEST_TIMEOUT_SECONDS,
+            )
+        except httpx.HTTPError as exc:  # pragma: no cover - network variance
+            last_exc = exc
+            if attempt == GROQ_MAX_RETRIES:
+                raise LLMError(f"NVIDIA NIM request failed: {exc}") from exc
+            time.sleep(GROQ_RETRY_FALLBACK_SECONDS)
+            continue
+
+        if resp.status_code == 429:
+            # Same hard cap as Groq: a multi-hour retry-after is a daily quota, and
+            # sleeping through it presents as a hang rather than an error.
+            wait = GROQ_RETRY_FALLBACK_SECONDS
+            try:
+                wait = float(resp.headers.get("retry-after", wait))
+            except (TypeError, ValueError):
+                pass
+            if wait > GROQ_RETRY_MAX_WAIT_SECONDS or attempt == GROQ_MAX_RETRIES:
+                raise LLMError(
+                    f"NVIDIA NIM rate-limited model {model} (server asked for "
+                    f"{wait:.0f}s). Not waiting -- retry later or switch LLM_PROVIDER."
+                )
+            time.sleep(wait)
+            continue
+
+        if resp.status_code >= 400:
+            raise LLMError(
+                f"NVIDIA NIM returned HTTP {resp.status_code} for model {model}: "
+                f"{resp.text[:400]}"
+            )
+        return _parse_openai_tool_response(resp.json(), model=model, tool_name=tool_name)
+
+    raise LLMError(f"NVIDIA NIM call to {model} failed after retries: {last_exc}")
+
+
 def structured_call(
     *,
     model: str,
@@ -240,10 +377,71 @@ def structured_call(
             tool_name=tool_name, tool_description=tool_description,
             max_tokens=max_tokens,
         )
+    if provider == "nvidia":
+        return _call_nvidia(
+            model=model, system=system, user=user, schema=schema,
+            tool_name=tool_name, tool_description=tool_description,
+            max_tokens=max_tokens,
+        )
     if provider == "anthropic":
         return _call_anthropic_shaped(
             _anthropic_client(), model=model, system=system, user=user, schema=schema,
             tool_name=tool_name, tool_description=tool_description,
             max_tokens=max_tokens,
         )
-    raise LLMError(f"unknown LLM_PROVIDER {provider!r} (expected 'groq' or 'anthropic')")
+    raise LLMError(
+        f"unknown LLM_PROVIDER {provider!r} "
+        f"(expected 'groq', 'nvidia' or 'anthropic')"
+    )
+
+
+def _self_check() -> int:  # pragma: no cover - operator tool
+    """``python -m app.llm --check`` -- prove a provider can do forced tool-use.
+
+    Worth running before any golden-set run on a new backend. A provider that chats
+    fine but cannot reliably return a forced tool call is useless here: every call in
+    this system depends on structured output, and the failure would otherwise surface
+    as a confusing mid-run parse error.
+    """
+    import argparse
+
+    from app.config import ATTRIBUTION_MODEL, LLM_PROVIDER
+
+    parser = argparse.ArgumentParser(description="Check an LLM backend end to end.")
+    parser.add_argument("--check", action="store_true")
+    parser.add_argument("--provider", default=LLM_PROVIDER)
+    parser.add_argument("--model", default=None)
+    args = parser.parse_args()
+
+    model = args.model or ATTRIBUTION_MODEL
+    print(f"provider={args.provider}  model={model}")
+    schema = {
+        "type": "object",
+        "properties": {
+            "ticker": {"type": "string"},
+            "direction": {"type": "string", "enum": ["up", "down"]},
+        },
+        "required": ["ticker", "direction"],
+    }
+    try:
+        out = structured_call(
+            model=model,
+            system="Extract the ticker and direction. Return only the tool call.",
+            user="TCS closed 2.8% lower today.",
+            schema=schema,
+            tool_name="emit_move",
+            provider=args.provider,
+        )
+    except LLMError as exc:
+        print(f"FAILED: {exc}")
+        return 1
+    print(f"ok -> {out}")
+    if out.get("direction") != "down":
+        print("WARNING: forced tool-use worked but the answer is wrong; "
+              "validate against the golden set before trusting this model.")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(_self_check())

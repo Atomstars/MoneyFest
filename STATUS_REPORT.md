@@ -1,5 +1,142 @@
 # Stock_Analysis — Current Status Report
 **Assessed:** 2026-07-30 · Assessor: Claude Code · Method: full read of source, docs, DB, and test suite
+**Updated:** 2026-07-31 — universe browser, stock detail page, NVIDIA provider (see §5)
+
+---
+
+## 5. 2026-07-31 — universe, fundamentals and a real stock page
+
+Four features added. Test suite went **140 → 193 passing**. The engine and its
+invariants were not touched; everything here sits beside the pipeline, not inside it.
+
+### 5.1 Security master — the app is no longer limited to a hand-seeded watchlist
+
+`security` table + `app/universe.py` + `scripts/sync_universe.py`. **5,056 active
+listings** (NSE 2,389 · BSE 4,928 · 2,260 dual-listed), joined on **ISIN**.
+
+The join is a safety improvement, not just a feature. `data/bse_scrip_map.yaml` is
+hand-maintained precisely because a wrong scrip code silently attaches another
+company's filings to a stock. A code derived from a matching ISIN cannot be wrong that
+way. `sync_universe --check` verifies the yaml against the join — **all six existing
+entries agree**, which is the first independent confirmation those codes were right.
+
+`promote()` leaves `sector_id` NULL by design: BSE's industry string is not this
+project's sector vocabulary, and mapping it would attach signed `core`-strength edges
+on a string match (§7.2's unsurvivable error).
+
+### 5.2 Stock detail page with fundamentals, shareholding and price windows
+
+Route `/stock/:id`, four tabs. `app/marketdata/` supplies it, and is **display-only by
+construction** — none of it reaches the gate or the bundle, because it carries no tier,
+no dissemination timestamp, and nothing the verifier could check.
+
+| Block | Source | State |
+|---|---|---|
+| Delayed quote + OHLC | BSE `getScripHeaderData`, then yfinance, then our stored close | works |
+| 1D/1W/1M/3M/6M/1Y/3Y/5Y returns | our own stored closes, calendar-anchored | works |
+| EPS/PE/PB/ROE/OPM/NPM | BSE `ComHeadernew` (Indian accounting) | works |
+| Market cap, 52w, beta, dividend yield | yfinance | works |
+| Revenue/profit, annual + quarterly | yfinance income statement | works |
+| Business summary, employees, listing date | yfinance + security master | works |
+| Promoter vs public, 20 quarters | NSE `corporate-share-holdings-master` | works |
+| **FII / DII split** | XBRL inside each filing | **not built** — see below |
+
+Each key statistic renders its own source inline, because BSE and yfinance disagree
+(TCS ROE: 59.9% BSE vs 47.7% yfinance — different consolidation) and a number you
+cannot attribute is a number you cannot check.
+
+**Quotes are delayed and labelled as such on every screen.** Real-time NSE ticks need
+a licensed feed or a broker API with a logged-in session. Implying otherwise would be
+exactly the quiet inaccuracy this project exists to avoid.
+
+**The FII/DII gap is real and worth naming.** The exchange feed publishes only the
+promoter/public top level. The institutional aggregate shown alongside comes from
+yfinance `major_holders`, with a different as-of date, disclosed in the payload itself.
+Closing this properly means fetching and parsing the XBRL attachment per quarter.
+
+### 5.3 Backfill-on-open
+
+Opening any of the 5,000 names warms it: one price download, then the pure gate
+replayed over ~274 trading days. Measured **~9 seconds**; the UI shows a warming state
+that says *why* (the gate needs 40 days before it can separate a stock move from a
+market move) rather than rendering an empty page.
+
+Verified end-to-end on two names never previously tracked. INFY backfilled to a healthy
+spread — 170 NOISE, 40 WARMING_UP, 32 INVESTIGATE, 22 MIXED, 10 MARKET.
+
+`app/onboard.py::_backfill` now delegates here, so the watchlist path and the browse
+path cannot drift.
+
+### 5.4 NVIDIA NIM as a third LLM provider
+
+`LLM_PROVIDER=nvidia`, default model `nvidia/llama-3.3-nemotron-super-49b-v1.5`. Called
+over httpx rather than adding the `openai` SDK — one JSON POST, and it is what allows
+`chat_template_kwargs` to disable Nemotron's reasoning preamble (default off: it burns
+budget and competes with the forced tool call for the output slot).
+
+**Why this matters beyond having another option:** §2.10's verifier fix is *still
+unvalidated* because Groq's 100k tokens/day ceiling kept killing the golden run.
+NVIDIA's budget is materially larger, which makes that validation practical again.
+
+> ⚠️ **The live NVIDIA path is untested.** No API key was available in this session, so
+> only the guards, request shape, response parsing and rate-limit behaviour are covered
+> (12 unit tests). Run `LLM_PROVIDER=nvidia python -m app.llm --check` first — a
+> reasoning model that chats instead of emitting a forced tool call is useless here and
+> that check catches it in one call. Then re-run the golden set: the §2.10 fix still
+> needs ≥60% top-driver hit rate with **NO_DRIVER honesty at 10/10**.
+
+### 5.5 Home rebuilt, density fixed, NVIDIA live (2026-07-31, second pass)
+
+First pass shipped the features but kept the old visual language; feedback was blunt
+and correct — UI 3/10, UX 1/10, "a kid could make it".
+
+**Home is now portfolio-first**, four stacked sections: portfolio hero (value, day
+change, total returns, invested) → holdings list → index strip → today's movers.
+Holdings are hairline-separated rows showing current value, cost basis and change,
+with **no charts and no outcome chips** — both were noise competing with the numbers.
+
+**Density.** Root font 16px → 15px, body 14px, card padding cut. The old build fit
+about six rows on a laptop; broker apps sit at 13–14px because the value is seeing the
+whole position at once.
+
+**Motion** (`components/motion.tsx`): count-up on the portfolio total, sweeping
+shimmer skeletons, staggered row entrance, flash-on-change, a live dot that blinks
+three times and stops. Rule: an animation must communicate something. `useCountUp`
+skips its tween below a 2% delta so quote refreshes don't leave the total in motion.
+
+**New market data**: `/market/indices` (NIFTY 50, SENSEX, BANK NIFTY, NIFTY IT) and
+`/market/movers` (top gainers/losers across the 60 largest by market cap).
+
+**NVIDIA is live and verified.** Key supplied, `nvidia/nemotron-3-ultra-550b-a55b`
+returning correct forced tool calls against the live endpoint. Two corrections to the
+first pass: the model is Nemotron 3 Ultra 550B (not Llama Nemotron Super 49B), and the
+thinking flag is `enable_thinking`, not `thinking` — the wrong key is silently ignored,
+so it would have looked like it worked while doing nothing. Now the default provider.
+
+> Still outstanding: the §2.10 verifier fix has **not** been re-validated. NVIDIA
+> removes the quota obstacle, so run `pytest -m llm -s tests/test_golden.py` and hold
+> the bar — ≥60% top-driver hit rate with NO_DRIVER honesty at 10/10.
+
+### 5.6 Two more real bugs, both surfaced by the new features
+
+**Portfolio day change was 0.00% for every position.** `positions()` computed the
+previous-close baseline against the portfolio's *global* as-of date rather than the
+date each position was actually priced at. Harmless while every stock shared one
+calendar; the moment on-demand backfill made some stocks current and others days
+behind, the "previous" close resolved to the very same row as the current one and
+every day change collapsed to zero. Positions now carry `priced_on`, and the UI badges
+a row whose price is older than the rest of the portfolio.
+
+**Chart y-axis was unreadable on stock prices.** `compactMoney` rounded thousands to
+`₹3k`, so a TCS chart spanning ₹2,700–₹2,950 labelled all four gridlines "₹3k".
+Thousands now print in full.
+
+### 5.7 A real bug found and fixed on the way
+
+`LineChart` memoised its gradient id *after* its empty-data early return, so hook count
+changed between renders. Invisible until a chart could go from empty to populated in
+place — which is precisely what a stock warming up its history does. It crashed the
+whole route via React Router's error boundary. Pre-existing; fixed.
 
 ---
 

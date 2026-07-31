@@ -113,6 +113,41 @@ BSE_HTTP_HEADERS = {
     "Origin": "https://www.bseindia.com",
 }
 
+# --- Security master / universe (the browsable NSE+BSE catalogue) -----------
+#
+# Both feeds carry ISIN, which is what lets them be joined exactly rather than
+# fuzzy-matched on company name. Verified 2026-07-31: NSE 2,389 rows, BSE 4,928.
+NSE_EQUITY_LIST_URL = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+NSE_EQUITY_LIST_FALLBACK_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+BSE_SCRIP_LIST_URL = (
+    "https://api.bseindia.com/BseIndiaAPI/api/ListofScripData/w"
+    "?Group=&Scripcode=&industry=&segment=Equity&status=Active"
+)
+# Per-scrip company header: EPS / PE / PB / ROE / OPM / NPM on Indian accounting,
+# plus the authoritative BSE industry classification.
+BSE_COMPANY_HEADER_URL = "https://api.bseindia.com/BseIndiaAPI/api/ComHeadernew/w"
+# Quarterly promoter-vs-public shareholding, ~20 quarters of history.
+NSE_SHAREHOLDING_URL = "https://www.nseindia.com/api/corporate-share-holdings-master"
+NSE_BASE_URL = "https://www.nseindia.com"
+
+# How long cached reference data stays fresh before a refetch is attempted.
+# Quotes are deliberately short-lived; fundamentals barely move within a quarter.
+QUOTE_TTL_SECONDS = 90
+KEY_STATS_TTL_SECONDS = 60 * 60 * 6
+FINANCIALS_TTL_SECONDS = 60 * 60 * 24
+PROFILE_TTL_SECONDS = 60 * 60 * 24 * 7
+SHAREHOLDING_TTL_SECONDS = 60 * 60 * 24
+
+# Quotes here are DELAYED exchange data scraped from public endpoints, never a
+# licensed real-time feed. The UI must label them as such -- implying live prices
+# we do not have is the kind of quiet inaccuracy this project exists to avoid.
+QUOTE_DISCLAIMER = "Delayed price — not a live feed."
+
+# Trading days of history fetched when a user opens a stock the app has never
+# analysed. GateConfig.min_lookback (40) is the floor for the gate to say anything;
+# a year gives it room and covers the 1Y return window on the detail page.
+BACKFILL_DAYS = 400
+
 # Tier-3 RSS feeds (business press). Small, curated set.
 NEWS_RSS_FEEDS: list[str] = [
     "https://www.moneycontrol.com/rss/business.xml",
@@ -134,11 +169,31 @@ ATTRIBUTION_CONFIG_VERSION = "attrib-v1.0.0"
 # Default False until Phase-2 acceptance passes. Overridable via env.
 ATTRIBUTION_ENABLED = os.environ.get("ATTRIBUTION_ENABLED", "false").lower() == "true"
 
-# Which LLM backend app/llm.py talks to. "groq" (free tier, OpenAI-compatible,
-# api.groq.com) or "anthropic" (paid, forced-tool-use via the anthropic SDK).
-# Defaults to groq -- this project has no Anthropic budget. Switch back at any time
-# by setting LLM_PROVIDER=anthropic (and ANTHROPIC_API_KEY) with no code changes.
+# Which LLM backend app/llm.py talks to:
+#   "groq"      free tier, OpenAI-compatible, api.groq.com
+#   "nvidia"    NVIDIA NIM (integrate.api.nvidia.com), OpenAI-compatible, open-weight
+#               models. Its per-day budget is far less restrictive than Groq's 100k
+#               TPD, which is the ceiling that has been blocking golden-set validation.
+#   "anthropic" paid, forced-tool-use via the anthropic SDK
+# Switching is an env var, never a code change.
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "groq").strip().lower()
+
+# NVIDIA NIM endpoint. Key comes from NVIDIA_API_KEY (env only, never stored).
+NVIDIA_BASE_URL = os.environ.get(
+    "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"
+).rstrip("/")
+
+# Nemotron is a *reasoning* model. Left to itself it emits a long thinking preamble
+# before answering, which costs tokens and latency on what is only a structured
+# extraction. Disabled by default; set NVIDIA_THINKING=true to trade speed for depth.
+#
+# The flag is spelled ``enable_thinking`` inside ``chat_template_kwargs`` -- NIM's own
+# spelling, verified against a live call. ``thinking`` is silently ignored, which
+# means getting this wrong looks like it works while doing nothing.
+NVIDIA_THINKING = os.environ.get("NVIDIA_THINKING", "false").strip().lower() == "true"
+
+# Reasoning token budget, only sent when thinking is enabled.
+NVIDIA_REASONING_BUDGET = int(os.environ.get("NVIDIA_REASONING_BUDGET", "8192"))
 
 # Exactly two LLM calls per pending bundle. Defaults depend on the provider; override
 # either independently via env if you want a different model on the same provider.
@@ -151,6 +206,14 @@ _MODEL_DEFAULTS = {
         # faster model without first validating it against the golden set.
         "attribution": "llama-3.3-70b-versatile",
         "verifier": "llama-3.3-70b-versatile",
+    },
+    "nvidia": {
+        # Nemotron 3 Ultra 550B. Forced tool-use confirmed working against the live
+        # endpoint (2026-07-31). Far stronger than the 70B this project ran on Groq,
+        # and the verifier is exactly where model strength converts into reliability
+        # -- so both roles use it until a smaller one is validated on the golden set.
+        "attribution": "nvidia/nemotron-3-ultra-550b-a55b",
+        "verifier": "nvidia/nemotron-3-ultra-550b-a55b",
     },
     "anthropic": {
         "attribution": "claude-opus-4-8",

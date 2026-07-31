@@ -191,6 +191,69 @@ CREATE TABLE IF NOT EXISTS run_log (
 );
 CREATE INDEX IF NOT EXISTS idx_run_log_date ON run_log(date);
 
+-- --------------------------------------------------------------------------
+-- Security master + reference data (the browsable universe).
+--
+-- `stock` stays what it always was: a name this app ANALYSES, with prices, gate
+-- rows and an exposure profile. `security` is the far larger catalogue of what
+-- EXISTS on the exchanges -- ~2.4k NSE symbols and ~4.9k BSE scrips -- that a user
+-- can search through before deciding to track anything. Keeping them separate is
+-- what stops the EOD job from trying to price 7,000 names every evening.
+--
+-- ISIN is the primary key because it is the only identifier both exchanges agree
+-- on. That join is also how `scrip_bse` gets filled: a scrip code derived from a
+-- matching ISIN is verified by construction, which is strictly better than the
+-- hand-maintained data/bse_scrip_map.yaml it supersedes (a wrong code silently
+-- attaches another company's filings to a stock -- see CLAUDE.md).
+CREATE TABLE IF NOT EXISTS security (
+    isin         TEXT PRIMARY KEY,
+    symbol_nse   TEXT,             -- NULL for BSE-only scrips
+    scrip_bse    TEXT,             -- NULL for NSE-only symbols
+    name         TEXT NOT NULL,
+    series       TEXT,             -- NSE series (EQ, BE, ...)
+    bse_group    TEXT,             -- BSE group (A, B, T, ...)
+    industry     TEXT,             -- BSE-reported industry, nullable
+    face_value   REAL,
+    listing_date TEXT,             -- ISO, from NSE
+    market_cap   REAL,             -- BSE-reported, in Rs crore; indicative only
+    exchanges    TEXT NOT NULL,    -- 'NSE' | 'BSE' | 'NSE,BSE'
+    status       TEXT NOT NULL DEFAULT 'Active',
+    stock_id     INTEGER REFERENCES stock(id),  -- set once promoted to a tracked stock
+    synced_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_security_symbol ON security(symbol_nse);
+CREATE INDEX IF NOT EXISTS idx_security_scrip ON security(scrip_bse);
+CREATE INDEX IF NOT EXISTS idx_security_stock ON security(stock_id);
+CREATE INDEX IF NOT EXISTS idx_security_name ON security(name);
+
+-- Cached third-party reference payloads (fundamentals, company profile, quotes).
+--
+-- One row per (stock, kind). Deliberately a JSON blob rather than 40 typed columns:
+-- the upstream shapes are outside our control and change without notice, and none of
+-- this data feeds the gate or the attribution bundle -- it is display-only. Typing it
+-- would buy nothing and break on every upstream field rename.
+--
+-- `fetched_at` drives TTL expiry; `source` records provenance so the UI can attribute
+-- a number to whoever actually reported it.
+CREATE TABLE IF NOT EXISTS reference_data (
+    stock_id   INTEGER NOT NULL REFERENCES stock(id),
+    kind       TEXT NOT NULL CHECK (kind IN
+                 ('key_stats', 'financials', 'profile', 'shareholding', 'quote')),
+    payload_json TEXT NOT NULL,
+    source     TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,
+    PRIMARY KEY (stock_id, kind)
+);
+
+-- Market-wide cached payloads (index levels, top movers). Same idea as
+-- reference_data but not keyed to a stock -- these describe the whole market.
+CREATE TABLE IF NOT EXISTS market_data (
+    kind         TEXT PRIMARY KEY CHECK (kind IN ('indices', 'movers')),
+    payload_json TEXT NOT NULL,
+    source       TEXT NOT NULL,
+    fetched_at   TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS driver (
     id                    INTEGER PRIMARY KEY,
     attribution_id        INTEGER NOT NULL REFERENCES attribution(id),

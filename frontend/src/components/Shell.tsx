@@ -1,16 +1,23 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { ThemeToggle } from './ui'
+import { SearchBar } from './SearchBar'
 
 export const APP_NAME = 'Moneyfest'
 
 /** Every route declares its own title, so the header is never guessing. */
 export const SECTIONS: Record<string, { title: string; subtitle: string }> = {
   '/home': { title: 'Home', subtitle: 'Every stock being tracked' },
+  '/explore': { title: 'Explore', subtitle: 'Every stock listed on NSE and BSE' },
   '/dashboard': { title: 'Dashboard', subtitle: 'Your holdings, valued and explained' },
   '/settings': { title: 'Settings', subtitle: 'Preferences, data and delivery' },
 }
 
+/**
+ * Primary navigation. Settings is deliberately NOT here -- it lives as an icon in
+ * the top-right corner, next to the theme toggle, the way every broker app puts it.
+ * Primary nav is for places you go many times a day; settings is not one of them.
+ */
 const NAV = [
   {
     to: '/home',
@@ -20,34 +27,41 @@ const NAV = [
     ),
   },
   {
+    to: '/explore',
+    label: 'Explore',
+    icon: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+      </>
+    ),
+  },
+  {
     to: '/dashboard',
     label: 'Dashboard',
     icon: (
       <path d="M4 19V10M10 19V5M16 19v-6M21 19H3" strokeLinecap="round" strokeLinejoin="round" />
     ),
   },
-  {
-    to: '/settings',
-    label: 'Settings',
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="3.2" />
-        <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"
-              strokeLinecap="round" />
-      </>
-    ),
-  },
 ]
+
+const SETTINGS_ICON = (
+  <>
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"
+          strokeLinecap="round" />
+  </>
+)
 
 function Wordmark() {
   return (
-    <NavLink to="/home" className="flex items-center gap-2" aria-label={`${APP_NAME} home`}>
+    <NavLink to="/home" className="flex shrink-0 items-center gap-2" aria-label={`${APP_NAME} home`}>
       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
         <rect x="2" y="2" width="20" height="20" rx="6" fill="var(--series-1)" />
         <path d="M7 16.5V8.2l5 5.4 5-5.4v8.3" fill="none" stroke="#fff"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="text-[15px] font-semibold tracking-tight">{APP_NAME}</span>
+      <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">{APP_NAME}</span>
     </NavLink>
   )
 }
@@ -70,12 +84,9 @@ export function PageHeader({ title, subtitle, aside }: {
 }
 
 export function Shell() {
-  const { pathname } = useLocation()
-  const section = SECTIONS[pathname]
-
   return (
     <div className="min-h-full">
-      {/* ---- Top bar: brand left, nav centre (desktop), theme right ---- */}
+      {/* ---- Top bar: brand, nav, search, then settings + theme hard right ---- */}
       <header
         className="sticky top-0 z-30 backdrop-blur-xl"
         style={{
@@ -83,10 +94,10 @@ export function Shell() {
           borderBottom: '1px solid var(--border)',
         }}
       >
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-5 py-3">
           <Wordmark />
 
-          <nav className="ml-4 hidden gap-1 sm:flex" aria-label="Main">
+          <nav className="hidden shrink-0 gap-1 md:flex" aria-label="Main">
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
@@ -104,25 +115,39 @@ export function Shell() {
             ))}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
-            {section && (
-              <span className="hidden text-xs md:inline" style={{ color: 'var(--text-muted)' }}>
-                {section.title}
-              </span>
-            )}
+          <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2">
+            <SearchBar />
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              title="Settings"
+              className="grid size-9 shrink-0 place-items-center rounded-lg transition-colors"
+              style={({ isActive }) => ({
+                border: '1px solid var(--border)',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                background: isActive
+                  ? 'color-mix(in srgb, var(--text-primary) 7%, transparent)'
+                  : 'transparent',
+              })}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                {SETTINGS_ICON}
+              </svg>
+            </NavLink>
             <ThemeToggle />
           </div>
         </div>
       </header>
 
       {/* pb-24 leaves room for the mobile bottom bar */}
-      <main className="mx-auto max-w-6xl px-5 py-6 pb-24 sm:pb-6">
+      <main className="mx-auto max-w-6xl px-5 py-6 pb-24 md:pb-6">
         <Outlet />
       </main>
 
       {/* ---- Bottom bar: mobile only, thumb-reachable ---- */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 backdrop-blur-xl sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 backdrop-blur-xl md:hidden"
         aria-label="Main"
         style={{
           background: 'color-mix(in srgb, var(--plane) 92%, transparent)',
@@ -131,7 +156,9 @@ export function Shell() {
         }}
       >
         <div className="flex">
-          {NAV.map((n) => (
+          {/* Settings joins the bottom bar on mobile: the top-right corner is too
+              cramped once the search field takes the width it needs. */}
+          {[...NAV, { to: '/settings', label: 'Settings', icon: SETTINGS_ICON }].map((n) => (
             <NavLink
               key={n.to}
               to={n.to}

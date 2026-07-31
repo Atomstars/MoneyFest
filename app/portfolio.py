@@ -116,6 +116,7 @@ def positions(conn: sqlite3.Connection, user_id: str = "default",
     for r in rows:
         price = prev_close = None
         gate = outcome = None
+        priced_on = date_iso
         if date_iso:
             m = conn.execute(
                 """SELECT close, gate_result FROM daily_metric
@@ -129,14 +130,21 @@ def positions(conn: sqlite3.Connection, user_id: str = "default",
                 # Fall back to this stock's own most recent close (it may not have
                 # traded on the portfolio's as-of date).
                 fb = conn.execute(
-                    """SELECT close, gate_result FROM daily_metric
+                    """SELECT date, close, gate_result FROM daily_metric
                        WHERE stock_id=? AND close IS NOT NULL AND date<=?
                        ORDER BY date DESC LIMIT 1""",
                     (r["stock_id"], date_iso),
                 ).fetchone()
                 if fb:
                     price, gate = fb["close"], fb["gate_result"]
-            prev_close = _price_before(conn, r["stock_id"], date_iso)
+                    priced_on = fb["date"]
+            # The baseline must be the close before the day this position was ACTUALLY
+            # priced at, not before the portfolio's global as-of date. Those differ
+            # whenever one stock's history runs further than another's -- which is now
+            # routine, since a stock backfilled on demand is current while the
+            # watchlist may be days behind. Using the global date there returns the
+            # very same close as `price`, so every day change silently reads 0.00%.
+            prev_close = _price_before(conn, r["stock_id"], priced_on)
             a = conn.execute(
                 """SELECT outcome FROM attribution
                    WHERE stock_id=? AND date=? ORDER BY id DESC LIMIT 1""",
@@ -163,6 +171,10 @@ def positions(conn: sqlite3.Connection, user_id: str = "default",
             "avg_cost": avg_cost,
             "price": price,
             "prev_close": prev_close,
+            # The date this position was actually priced at. Usually the portfolio's
+            # as_of, but older when this stock's history lags -- the UI needs to be
+            # able to say so rather than implying every row is same-day.
+            "priced_on": priced_on if price is not None else None,
             "invested": invested,
             "market_value": market_value,
             "pnl": pnl,

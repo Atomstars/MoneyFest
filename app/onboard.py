@@ -76,32 +76,15 @@ def _resolve_symbol(ticker: str):
 
 
 def _backfill(conn: sqlite3.Connection, stock_id: int, ticker: str) -> int:
-    """Warm 200d of history and backfill daily_metric using the pure gate. Returns days."""
-    from app.config import INDEX_TICKER
-    from app.tools.prices import build_gate_inputs
-    from app.tools.gate import classify
-    from app.jobs.eod import write_daily_metric
+    """Warm price history and backfill daily_metric via the pure gate. Returns days.
 
-    start, end = default_window(200)
-    series = download_prices(f"{ticker}.NS", start, end)
-    if len(series.adj_close) < 2:
-        return 0
-    index = download_prices(INDEX_TICKER, start, end)
-    n = 0
-    for i, day in enumerate(series.dates[1:], start=1):  # need a prior day for a return
-        gi = build_gate_inputs(series, index, day)
-        if gi.r_today is None:
-            continue
-        res = classify(r_today=gi.r_today, stock_returns=gi.stock_returns,
-                       index_returns=gi.index_returns, r_index_today=gi.r_index_today,
-                       vol_zscore=gi.vol_zscore, data_issue=gi.data_issue)
-        write_daily_metric(
-            conn, stock_id, day, res,
-            close=series.adj_close[i],
-            volume=series.volume[i] if i < len(series.volume) else None,
-        )
-        n += 1
-    return n
+    Delegates to ``app.jobs.backfill``, which is also what the universe browser calls
+    when a user opens a stock the app has never analysed. One implementation, so the
+    watchlist path and the browse path cannot produce different history.
+    """
+    from app.jobs.backfill import ensure_history
+
+    return ensure_history(conn, stock_id, force=True)["written"]
 
 
 def add_stock(conn: sqlite3.Connection, user_id: int | str, ticker: str) -> OnboardResult:

@@ -69,11 +69,60 @@ export function Delta({ value, children }: { value: number | null | undefined; c
 }
 
 export function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`shimmer ${className}`} aria-hidden="true" />
+}
+
+/**
+ * A signed percentage on a tinted background.
+ *
+ * Money only — green/red here means gain/loss, which is what Indian investors read
+ * it as. Outcome chips stay deliberately neutral so the explanation layer never
+ * colours as a buy/sell signal (see OutcomeChip above).
+ */
+export function DeltaPill({ value, size = 'md' }: {
+  value: number | null | undefined
+  size?: 'sm' | 'md'
+}) {
+  const finite = value != null && Number.isFinite(value)
+  const dir = !finite ? 'flat' : value! > 0 ? 'up' : value! < 0 ? 'down' : 'flat'
+  const text = !finite
+    ? '—'
+    : `${value! > 0 ? '+' : value! < 0 ? '−' : ''}${Math.abs(value! * 100).toFixed(2)}%`
+
   return (
-    <div
-      className={`animate-pulse rounded-md ${className}`}
-      style={{ background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }}
-    />
+    <span
+      className={`money inline-flex items-center rounded-md font-semibold whitespace-nowrap ${
+        size === 'sm' ? 'px-1.5 py-px text-[11px]' : 'px-2 py-0.5 text-xs'
+      }`}
+      style={{
+        background: dir === 'up' ? 'var(--tint-up)'
+          : dir === 'down' ? 'var(--tint-down)'
+          : 'color-mix(in srgb, var(--text-primary) 5%, transparent)',
+        color: dir === 'up' ? 'var(--up)' : dir === 'down' ? 'var(--down)' : 'var(--text-muted)',
+      }}
+    >
+      {dir === 'up' && <Caret up />}
+      {dir === 'down' && <Caret />}
+      {text}
+    </span>
+  )
+}
+
+function Caret({ up = false }: { up?: boolean }) {
+  return (
+    <svg width="8" height="8" viewBox="0 0 8 8" className="mr-1 shrink-0" aria-hidden="true">
+      <path d={up ? 'M4 1 7 6H1z' : 'M4 7 1 2h6z'} fill="currentColor" />
+    </svg>
+  )
+}
+
+/** Section heading for the home screen's stacked sections. */
+export function SectionHead({ title, action }: { title: string; action?: ReactNode }) {
+  return (
+    <div className="mb-2 flex items-baseline justify-between gap-3 px-0.5">
+      <h2 className="text-[13px] font-semibold tracking-tight">{title}</h2>
+      {action}
+    </div>
   )
 }
 

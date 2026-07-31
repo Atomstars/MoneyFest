@@ -49,8 +49,22 @@
   --up:   #006300;
   --down: #d03b3b;
 
-  --radius: 14px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --shadow-card: 0 1px 2px rgba(11,11,11,0.04), 0 8px 24px -12px rgba(11,11,11,0.10);
+  /* Raised: for the one element on a screen that should read as the subject. */
+  --shadow-raised: 0 1px 2px rgba(11,11,11,0.05), 0 2px 6px -2px rgba(11,11,11,0.08),
+                   0 18px 40px -20px rgba(11,11,11,0.22);
+  --tint-up:   rgba(0, 99, 0, 0.10);
+  --tint-down: rgba(208, 59, 59, 0.10);
+  --hairline:  rgba(11, 11, 11, 0.06);
+  --hover:     rgba(11, 11, 11, 0.035);
+  /* Brand sweep, used on the portfolio hero and nothing else. */
+  --brand-wash: linear-gradient(135deg,
+                  color-mix(in srgb, var(--series-1) 12%, var(--surface-1)) 0%,
+                  var(--surface-1) 58%);
+  --shimmer: rgba(11, 11, 11, 0.06);
+  --shimmer-hi: rgba(11, 11, 11, 0.11);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,6 +89,17 @@
     --up:   #0ca30c;
     --down: #e66767;
     --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+    --shadow-raised: 0 1px 2px rgba(0,0,0,0.5), 0 2px 6px -2px rgba(0,0,0,0.5),
+                     0 18px 40px -20px rgba(0,0,0,0.85);
+    --tint-up:   rgba(12, 163, 12, 0.14);
+    --tint-down: rgba(230, 103, 103, 0.14);
+    --hairline:  rgba(255, 255, 255, 0.07);
+    --hover:     rgba(255, 255, 255, 0.045);
+    --brand-wash: linear-gradient(135deg,
+                    color-mix(in srgb, var(--series-1) 18%, var(--surface-1)) 0%,
+                    var(--surface-1) 58%);
+    --shimmer: rgba(255, 255, 255, 0.05);
+    --shimmer-hi: rgba(255, 255, 255, 0.11);
   }
 }
 
@@ -99,6 +124,17 @@
   --up:   #0ca30c;
   --down: #e66767;
   --shadow-card: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.6);
+  --shadow-raised: 0 1px 2px rgba(0,0,0,0.5), 0 2px 6px -2px rgba(0,0,0,0.5),
+                   0 18px 40px -20px rgba(0,0,0,0.85);
+  --tint-up:   rgba(12, 163, 12, 0.14);
+  --tint-down: rgba(230, 103, 103, 0.14);
+  --hairline:  rgba(255, 255, 255, 0.07);
+  --hover:     rgba(255, 255, 255, 0.045);
+  --brand-wash: linear-gradient(135deg,
+                  color-mix(in srgb, var(--series-1) 18%, var(--surface-1)) 0%,
+                  var(--surface-1) 58%);
+  --shimmer: rgba(255, 255, 255, 0.05);
+  --shimmer-hi: rgba(255, 255, 255, 0.11);
 }
 
 @theme inline {
@@ -116,17 +152,32 @@
 
 html, body, #root { height: 100%; }
 
+/* Density.
+
+   The app read as "zoomed in": 16px base with generous card padding meant a laptop
+   screen held about six rows of information. A broker app is an information display
+   -- Groww, Kite and Upstox all sit at 13-14px with tight leading, because the value
+   is in seeing your whole position at once, not in comfortable prose measure.
+   15px root with a 14px body puts roughly 40% more on screen without straining. */
+html { font-size: 15px; }
+
 body {
   margin: 0;
   background: var(--plane);
   color: var(--text-primary);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.933rem;               /* 14px */
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* Tabular figures only where columns must align vertically (table rows, axis
    ticks). Hero numbers keep proportional figures per the type spec. */
 .tnum { font-variant-numeric: tabular-nums; }
+
+/* Money and deltas are read as columns even when they are not in a table -- a price
+   that reflows horizontally as its digits change looks broken. */
+.money { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
 .card {
   background: var(--surface-1);
@@ -135,6 +186,20 @@ body {
   box-shadow: var(--shadow-card);
 }
 
+/* The one card per screen that is the subject of the page. */
+.card-raised {
+  background: var(--brand-wash);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-raised);
+}
+
+/* Rows in a list: hairline separated, not boxed. Boxing every row is what made the
+   old home screen read as a wall of identical widgets. */
+.row-list > * + * { border-top: 1px solid var(--hairline); }
+.row-hover { transition: background-color .14s ease; }
+.row-hover:hover { background: var(--hover); }
+
 /* Focus ring: visible, consistent, never removed. */
 :where(a, button, [tabindex]):focus-visible {
   outline: 2px solid var(--series-1);
@@ -142,8 +207,48 @@ body {
   border-radius: 6px;
 }
 
+/* ---- Motion -------------------------------------------------------------
+   Every animation here is short, runs once, and communicates something: content
+   arriving, data loading, or a value being live. Nothing loops for decoration --
+   a permanently animating dashboard is exhausting to actually use. */
+
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .rise { animation: rise .32s cubic-bezier(.22,.61,.36,1) both; }
+
+/* Staggered entrance for list rows. --i is set per row from the index. */
+@keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.stagger { animation: rise-in .38s cubic-bezier(.22,.61,.36,1) both;
+           animation-delay: calc(var(--i, 0) * 40ms); }
+
+/* Skeletons sweep rather than pulse: a moving highlight reads as "loading",
+   a fading block reads as "disabled". */
+@keyframes shimmer { 100% { background-position: -200% 0; } }
+.shimmer {
+  background: linear-gradient(90deg, var(--shimmer) 0%, var(--shimmer-hi) 50%,
+                                     var(--shimmer) 100%);
+  background-size: 200% 100%;
+  background-position: 200% 0;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* A live, delayed-but-refreshing value. Two seconds, then it stops -- a dot that
+   blinks forever becomes invisible. */
+@keyframes ping-dot {
+  0%   { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  70%  { box-shadow: 0 0 0 5px transparent; opacity: .85; }
+  100% { box-shadow: 0 0 0 0 transparent; opacity: 1; }
+}
+.live-dot { animation: ping-dot 1.8s ease-out 3; border-radius: 999px; }
+
+/* Flash a value green/red for a beat when it changes on screen. */
+@keyframes flash-up   { from { background: var(--tint-up); }   to { background: transparent; } }
+@keyframes flash-down { from { background: var(--tint-down); } to { background: transparent; } }
+.flash-up   { animation: flash-up .9s ease-out both; border-radius: 6px; }
+.flash-down { animation: flash-down .9s ease-out both; border-radius: 6px; }
+
+.lift { transition: transform .16s cubic-bezier(.22,.61,.36,1), box-shadow .16s ease; }
+.lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-raised); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -151,4 +256,5 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
+  .shimmer { animation: none; background: var(--shimmer); }
 }

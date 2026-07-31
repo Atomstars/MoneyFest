@@ -39,7 +39,9 @@ export function LineChart({
     return () => ro.disconnect()
   }, [])
 
-  const pad = { top: 16, right: 16, bottom: 26, left: 52 }
+  // left: room for a full rupee tick like ₹13,948 -- see compactMoney, which no
+  // longer rounds thousands away.
+  const pad = { top: 16, right: 16, bottom: 26, left: 62 }
   const w = Math.max(width, 320)
   const innerW = w - pad.left - pad.right
   const innerH = height - pad.top - pad.bottom
@@ -52,6 +54,13 @@ export function LineChart({
     const span = hi - lo || Math.abs(hi) || 1
     return { min: lo - span * 0.08, max: hi + span * 0.08 }
   }, [data])
+
+  // Every hook must run before the empty-data early return below. This id used to be
+  // memoised further down, after that return -- so the first render of an empty chart
+  // ran one fewer hook than the render after data arrived, and React threw
+  // "Rendered more hooks than during the previous render". It only surfaced once a
+  // chart could go from empty to populated in place (a stock warming up its history).
+  const gid = useMemo(() => `lg-${Math.random().toString(36).slice(2, 9)}`, [])
 
   if (!data.length) {
     return (
@@ -69,7 +78,6 @@ export function LineChart({
 
   const ticks = 4
   const gridVals = Array.from({ length: ticks + 1 }, (_, i) => min + ((max - min) * i) / ticks)
-  const gid = useMemo(() => `lg-${Math.random().toString(36).slice(2, 9)}`, [])
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
