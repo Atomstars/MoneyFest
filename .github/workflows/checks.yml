@@ -1,0 +1,70 @@
+name: Full stack checks
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: moneyfest_test
+          POSTGRES_USER: moneyfest
+          POSTGRES_PASSWORD: test-password
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U moneyfest -d moneyfest_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DB_USER: moneyfest
+      DB_PASSWORD: test-password
+      TEST_DB_URL: jdbc:postgresql://127.0.0.1:55432/moneyfest_test
+      E2E_BROWSER: chromium
+      MARKET_DATA_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Java integration tests and package
+        working-directory: backend
+        run: sh mvnw -B verify
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Typecheck, build and lint
+        working-directory: frontend
+        run: |
+          npm run build
+          npm run lint
+      - name: Install test browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Start test application
+        run: |
+          java -Xmx192m -jar backend/target/moneyfest-backend-0.1.0.jar --spring.profiles.active=local --server.port=8081 --spring.datasource.url="$TEST_DB_URL" --debug=false > backend.log 2>&1 &
+          cd frontend
+          MONEYFEST_API_URL=http://127.0.0.1:8081 npm run dev -- --host 127.0.0.1 --port 5175 --strictPort > ../frontend.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8081/api/v1/health && curl -fsS http://127.0.0.1:5175/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Browser checks
+        working-directory: frontend
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-evidence
+          path: |
+            backend/target/surefire-reports/
+            frontend/test-results/
+            backend.log
+            frontend.log
