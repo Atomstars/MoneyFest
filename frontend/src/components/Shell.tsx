@@ -1,158 +1,99 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { api, type User } from '../lib/api'
 import { ThemeToggle } from './ui'
-
-export const APP_NAME = 'Moneyfest'
-
-/** Every route declares its own title, so the header is never guessing. */
-export const SECTIONS: Record<string, { title: string; subtitle: string }> = {
-  '/home': { title: 'Home', subtitle: 'Every stock being tracked' },
-  '/dashboard': { title: 'Dashboard', subtitle: 'Your holdings, valued and explained' },
-  '/settings': { title: 'Settings', subtitle: 'Preferences, data and delivery' },
-}
+import { Icon } from './Icon'
+import { WorkspaceAssistant, WorkspaceSearch } from './WorkspaceTools'
 
 const NAV = [
-  {
-    to: '/home',
-    label: 'Home',
-    icon: (
-      <path d="M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5" strokeLinecap="round" strokeLinejoin="round" />
-    ),
-  },
-  {
-    to: '/dashboard',
-    label: 'Dashboard',
-    icon: (
-      <path d="M4 19V10M10 19V5M16 19v-6M21 19H3" strokeLinecap="round" strokeLinejoin="round" />
-    ),
-  },
-  {
-    to: '/settings',
-    label: 'Settings',
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="3.2" />
-        <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"
-              strokeLinecap="round" />
-      </>
-    ),
-  },
+  { to: '/home', label: 'Explore stocks', icon: 'markets' },
+  { to: '/us-stocks', label: 'US stocks', icon: 'globe' },
+  { to: '/dashboard', label: 'Portfolio', icon: 'portfolio' },
+  { to: '/portfolio-lab', label: 'Portfolio builder', icon: 'search' },
+  { to: '/funds', label: 'Mutual funds', icon: 'funds' },
+  { to: '/stock-research', label: 'Stock research', icon: 'search' },
+  { to: '/research', label: 'Research desk', icon: 'search' },
+  { to: '/news', label: 'News & alerts', icon: 'news' },
+  { to: '/settings', label: 'Settings', icon: 'settings' },
 ]
-
-function Wordmark() {
-  return (
-    <NavLink to="/home" className="flex items-center gap-2" aria-label={`${APP_NAME} home`}>
-      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="2" y="2" width="20" height="20" rx="6" fill="var(--series-1)" />
-        <path d="M7 16.5V8.2l5 5.4 5-5.4v8.3" fill="none" stroke="#fff"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <span className="text-[15px] font-semibold tracking-tight">{APP_NAME}</span>
-    </NavLink>
-  )
+const PRIMARY = [
+  { to: '/home', label: 'Stocks', icon: 'markets', paths: ['/home', '/us-stocks'] },
+  { to: '/funds', label: 'Mutual funds', icon: 'funds', paths: ['/funds'] },
+  { to: '/dashboard', label: 'Portfolio', icon: 'portfolio', paths: ['/dashboard', '/portfolio-lab'] },
+  { to: '/stock-research', label: 'Research', icon: 'search', paths: ['/stock-research', '/research'] },
+  { to: '/news', label: 'News & alerts', icon: 'news', paths: ['/news'] },
+]
+export function Brand() {
+  return <span className="brand wordmark">money<span>fest</span></span>
 }
-
-/** Page header. Each section states its own title and one line of purpose. */
-export function PageHeader({ title, subtitle, aside }: {
-  title: string; subtitle?: string; aside?: ReactNode
-}) {
-  return (
-    <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
-        {subtitle && (
-          <p className="mt-0.5 text-sm" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
-        )}
-      </div>
-      {aside}
-    </header>
-  )
+export function PageHeader({ title, subtitle, aside }: { title: string; subtitle?: string; aside?: ReactNode }) {
+  return <header className="page-heading"><div><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div><div className="heading-actions">{aside}</div></header>
 }
-
 export function Shell() {
+  const navigate = useNavigate()
   const { pathname } = useLocation()
-  const section = SECTIONS[pathname]
-
-  return (
-    <div className="min-h-full">
-      {/* ---- Top bar: brand left, nav centre (desktop), theme right ---- */}
-      <header
-        className="sticky top-0 z-30 backdrop-blur-xl"
-        style={{
-          background: 'color-mix(in srgb, var(--plane) 85%, transparent)',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3">
-          <Wordmark />
-
-          <nav className="ml-4 hidden gap-1 sm:flex" aria-label="Main">
-            {NAV.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-                style={({ isActive }) => ({
-                  background: isActive
-                    ? 'color-mix(in srgb, var(--text-primary) 7%, transparent)'
-                    : 'transparent',
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                })}
-              >
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-2">
-            {section && (
-              <span className="hidden text-xs md:inline" style={{ color: 'var(--text-muted)' }}>
-                {section.title}
-              </span>
-            )}
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
-      {/* pb-24 leaves room for the mobile bottom bar */}
-      <main className="mx-auto max-w-6xl px-5 py-6 pb-24 sm:pb-6">
-        <Outlet />
-      </main>
-
-      {/* ---- Bottom bar: mobile only, thumb-reachable ---- */}
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 backdrop-blur-xl sm:hidden"
-        aria-label="Main"
-        style={{
-          background: 'color-mix(in srgb, var(--plane) 92%, transparent)',
-          borderTop: '1px solid var(--border)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-        }}
-      >
-        <div className="flex">
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium"
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--series-1)' : 'var(--text-muted)',
-              })}
-            >
-              {({ isActive }) => (
-                <>
-                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none"
-                       stroke="currentColor" strokeWidth={isActive ? 2.2 : 1.8} aria-hidden="true">
-                    {n.icon}
-                  </svg>
-                  {n.label}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+  const [user, setUser] = useState<User | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('moneyfest-navigation') === 'collapsed' } catch { return false } })
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const more = useRef<HTMLDialogElement>(null)
+  const account = useRef<HTMLDetailsElement>(null)
+  useEffect(() => { api.me().then(setUser).catch(() => {}) }, [])
+  useEffect(() => { setSearchOpen(false); more.current?.close(); account.current?.removeAttribute('open') }, [pathname])
+  useEffect(() => {
+    function shortcut(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSearchOpen(false)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault(); setSearchOpen(true)
+        requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[aria-label="Search workspace"]')?.focus())
+      }
+    }
+    window.addEventListener('keydown', shortcut)
+    return () => window.removeEventListener('keydown', shortcut)
+  }, [])
+  useEffect(() => {
+    if (!searchOpen) return
+    function dismissSearch(e: PointerEvent) {
+      if (e.target instanceof Element && !e.target.closest('.workspace-search,.mobile-search-toggle')) setSearchOpen(false)
+    }
+    document.addEventListener('pointerdown', dismissSearch)
+    return () => document.removeEventListener('pointerdown', dismissSearch)
+  }, [searchOpen])
+  function toggleNavigation() {
+    setCollapsed(value => { try { localStorage.setItem('moneyfest-navigation', value ? 'expanded' : 'collapsed') } catch { /* Storage can be disabled. */ } return !value })
+  }
+  async function logout() {
+    setBusy(true); setError('')
+    try { await api.logout(); navigate('/', { replace: true }) }
+    catch { setError('Sign out failed. Try again.') }
+    finally { setBusy(false) }
+  }
+  const section = NAV.find(n => n.to === pathname)?.label ?? 'Moneyfest'
+  const related = ['/home', '/us-stocks'].includes(pathname) ? NAV.filter(n => ['/home', '/us-stocks', '/stock-research'].includes(n.to))
+    : ['/dashboard', '/portfolio-lab'].includes(pathname) ? NAV.filter(n => ['/dashboard', '/portfolio-lab'].includes(n.to))
+    : ['/stock-research', '/research'].includes(pathname) ? NAV.filter(n => ['/stock-research', '/research'].includes(n.to)) : []
+  return <div className={`app-layout consumer-app studio-app native-app ${collapsed ? 'navigation-collapsed' : ''}`}>
+    <a href="#main-content" className="skip-link">Skip to content</a>
+    <aside className="app-rail" aria-label="Workspace navigation">
+      <Link className="rail-brand" to="/home" aria-label="Moneyfest home"><Brand /><span className="rail-monogram" aria-hidden="true">mf</span></Link>
+      <span className="rail-section-label">YOUR WORKSPACE</span>
+      <nav className="product-nav" aria-label="Main">{PRIMARY.map(n => <Link key={n.to} to={n.to} title={n.label} className={n.paths.includes(pathname) ? 'active' : ''} aria-current={n.paths.includes(pathname) ? 'page' : undefined}><Icon name={n.icon} size={20} /><span>{n.label}</span>{n.paths.includes(pathname) && <i aria-hidden="true" />}</Link>)}</nav>
+      <div className="rail-tools"><span className="rail-section-label">RESEARCH TOOLS</span>{NAV.filter(n => ['/us-stocks', '/portfolio-lab', '/research'].includes(n.to)).map(n => <NavLink key={n.to} to={n.to} title={n.label}><Icon name={n.icon} size={18} /><span>{n.label}</span></NavLink>)}</div>
+      <div className="rail-bottom"><NavLink to="/settings" title="Settings"><Icon name="settings" size={19} /><span>Settings</span></NavLink><button onClick={toggleNavigation} aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed}><Icon name="panel" size={19} /><span>Collapse navigation</span></button><div className="rail-person"><span className="rail-avatar">{user?.display_name.charAt(0).toUpperCase() ?? 'M'}</span><div><strong>{user?.display_name ?? 'Your account'}</strong><small>Personal workspace</small></div></div></div>
+    </aside>
+    <header className="app-masthead"><div className={`masthead-inner ${searchOpen ? 'search-open' : ''}`}>
+      <div className="app-location"><button className="icon-button app-back" aria-label="Go back" disabled={!(window.history.state?.idx > 0)} onClick={() => navigate(-1)}><Icon name="back" size={18} /></button><Link className="mobile-app-brand" to="/home" aria-label="Moneyfest home"><Brand /></Link><span className="app-location-root">Workspace <span>/</span></span><strong>{section}</strong></div><WorkspaceSearch /><kbd className="search-key">Ctrl K</kbd>
+      <div className="masthead-actions"><button className="mobile-search-toggle icon-button" aria-label="Search all stocks and funds" aria-expanded={searchOpen} onClick={() => setSearchOpen(x => !x)}><Icon name="search" size={21} /></button><ThemeToggle /><NavLink className="icon-button" to="/news" aria-label="Open news and alerts"><Icon name="bell" size={21} /></NavLink>
+        <details ref={account} className="account-menu"><summary aria-label="Account menu"><span className="avatar">{user?.display_name.charAt(0).toUpperCase() ?? 'M'}</span></summary><div className="account-popover"><strong>{user?.display_name ?? 'Your account'}</strong><Link to="/settings"><Icon name="settings" />Settings</Link><button disabled={busy} onClick={() => void logout()}><Icon name="logout" />{busy ? 'Signing out…' : 'Sign out'}</button></div></details>
+      </div>
+    </div></header>
+    <div className="app-body">
+      {!!related.length && <nav className="context-nav" aria-label="Section navigation">{related.map(n => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}</nav>}
+      <main id="main-content" className="app-content">{error && <p role="alert">{error}</p>}<Outlet context={{ user }} /></main>
     </div>
-  )
+    {!['/research', '/portfolio-lab'].includes(pathname) && <WorkspaceAssistant section={section} />}
+    <nav className="mobile-nav" aria-label="Mobile navigation">{[PRIMARY[0], PRIMARY[2], PRIMARY[1], PRIMARY[4]].map(n => <Link key={n.to} to={n.to} className={n.paths.includes(pathname) ? 'active' : ''}><Icon name={n.icon} /><span>{n.label === 'Mutual funds' ? 'Funds' : n.label === 'News & alerts' ? 'News' : n.label}</span></Link>)}<button className={['/stock-research', '/research', '/settings'].includes(pathname) ? 'active' : ''} aria-label="More sections" onClick={() => more.current?.showModal()}><Icon name="more" /><span>More</span></button></nav>
+    <dialog ref={more} className="more-sheet" aria-labelledby="more-title" onClick={e => { if (e.target === e.currentTarget) more.current?.close() }}><header><h2 id="more-title">Explore Moneyfest</h2><button aria-label="Close sections" onClick={() => more.current?.close()}>×</button></header><nav>{NAV.map(n => <Link key={n.to} to={n.to} onClick={() => more.current?.close()}><span><Icon name={n.icon} />{n.label}</span><Icon name="arrow" size={18} /></Link>)}</nav></dialog>
+  </div>
 }

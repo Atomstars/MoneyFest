@@ -20,7 +20,7 @@ export function PositionRow({ p, onOpen }: { p: Position; onOpen: (p: Position) 
       .then((rows) => { if (alive) setSpark(rows.map((r) => r.close)) })
       .catch(() => { /* sparkline is decoration; its absence must not break the row */ })
     return () => { alive = false }
-  }, [p.stock_id])
+  }, [p.stock_id, p.price])
 
   const dir = directionOf(p.day_change)
   const unpriced = p.price === null
@@ -42,7 +42,7 @@ export function PositionRow({ p, onOpen }: { p: Position; onOpen: (p: Position) 
           <OutcomeChip outcome={p.outcome ?? p.gate_result} />
         </div>
         <div className="mt-0.5 truncate text-xs" style={{ color: 'var(--text-muted)' }}>
-          {p.qty} share{p.qty === 1 ? '' : 's'} · avg {money(p.avg_cost, true)}
+          {p.qty} share{p.qty === 1 ? '' : 's'} · avg {money(p.avg_cost, true, p.currency)}
         </div>
       </div>
 
@@ -54,14 +54,14 @@ export function PositionRow({ p, onOpen }: { p: Position; onOpen: (p: Position) 
       {/* Numbers */}
       <div className="shrink-0 text-right">
         <div className="tnum text-sm font-semibold">
-          {unpriced ? '—' : money(p.market_value)}
+          {unpriced ? '—' : money(p.market_value, false, p.currency)}
         </div>
         <div className="tnum text-xs">
           {unpriced ? (
             <span style={{ color: 'var(--text-muted)' }}>no price</span>
           ) : (
             <span style={{ color: (p.pnl ?? 0) >= 0 ? 'var(--up)' : 'var(--down)' }}>
-              {signedMoney(p.pnl)} ({signedPct(p.pnl_pct)})
+              {signedMoney(p.pnl, p.currency)} ({signedPct(p.pnl_pct)})
             </span>
           )}
         </div>

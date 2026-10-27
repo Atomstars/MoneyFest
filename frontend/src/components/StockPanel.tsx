@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
-import { api, type Position, type PricePoint } from '../lib/api'
+import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { api, type Position, type PricePoint, type Assessment, type Driver, type StockDetail, type StockRow } from '../lib/api'
 import { money, signedMoney, signedPct, pct, OUTCOME_HELP, directionOf } from '../lib/format'
 import { LineChart } from './charts/LineChart'
 import { OutcomeChip } from './ui'
+import { NewsFeed } from './NewsFeed'
+import { RefreshButton } from './RefreshButton'
 
 /**
  * Slide-over detail for one holding.
@@ -12,30 +15,56 @@ import { OutcomeChip } from './ui'
  * engine's own words -- never paraphrased here, because the renderer already
  * guarantees every sentence traces to a verified claim.
  */
-export function StockPanel({ position, onClose }: { position: Position; onClose: () => void }) {
+export function StockPanel({ position, onClose }: { position: Position | StockRow; onClose: () => void }) {
+  const holding = 'qty' in position ? position : null
+  const panelRef = useRef<HTMLElement>(null)
   const [prices, setPrices] = useState<PricePoint[]>([])
   const [loading, setLoading] = useState(true)
+  const [assessment, setAssessment] = useState<Assessment | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [revision, setRevision] = useState(0)
+  useEffect(() => {
+    const update = () => setRevision(n => n + 1)
+    window.addEventListener('moneyfest-data-updated', update)
+    return () => window.removeEventListener('moneyfest-data-updated', update)
+  }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const previousFocus = document.activeElement as HTMLElement | null
+    panelRef.current?.querySelector<HTMLElement>('button')?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Tab') return
+      const nodes = panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input, select, [tabindex="0"]')
+      if (!nodes?.length) return
+      const first = nodes[0], last = nodes[nodes.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
+      previousFocus?.focus()
     }
   }, [onClose])
 
   useEffect(() => {
     setLoading(true)
-    api.prices(position.stock_id, 90)
-      .then(setPrices)
-      .catch(() => setPrices([]))
-      .finally(() => setLoading(false))
-  }, [position.stock_id])
+    let alive = true
+    setError(null); setAssessment(null)
+    Promise.all([api.prices(position.stock_id, 90), api.assessment(position.stock_id)])
+      .then(([points, result]) => { if (alive) { setPrices(points); setAssessment(result) } })
+      .catch((e) => { if (alive) setError(e.message) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [position.stock_id, revision])
 
-  const outcome = position.outcome ?? position.gate_result
-  const dir = directionOf(position.day_change)
+  const outcome = assessment?.outcome ?? holding?.outcome ?? position.gate_result
+  const drivers: Driver[] = assessment?.drivers_json ? JSON.parse(assessment.drivers_json) : []
+  const evidence: StockDetail['evidence'] = assessment?.evidence_json ? JSON.parse(assessment.evidence_json) : []
+  const dir = directionOf(holding?.day_change ?? ('change_pct' in position ? position.change_pct : null))
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -47,6 +76,7 @@ export function StockPanel({ position, onClose }: { position: Position; onClose:
       />
 
       <aside
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={`${position.ticker} details`}
@@ -83,15 +113,18 @@ export function StockPanel({ position, onClose }: { position: Position; onClose:
         </header>
 
         <div className="space-y-6 px-6 py-5">
+          <RefreshButton stockId={position.stock_id} /><Link className="text-link" to={`/stock-research?stockId=${position.stock_id}`}>Open stock research & trade planner →</Link>
+          {error && <p role="alert" className="text-sm">Unable to load stock details: {error}</p>}
           {/* Value + P&L */}
+          {holding && <>
           <div>
             <div className="text-3xl font-semibold tracking-tight">
-              {money(position.market_value)}
+              {money(holding.market_value, false, position.currency)}
             </div>
             <div className="mt-1 text-sm">
-              <span style={{ color: (position.pnl ?? 0) >= 0 ? 'var(--up)' : 'var(--down)' }}>
-                <span className="tnum font-semibold">{signedMoney(position.pnl)}</span>
-                <span className="tnum ml-1">({signedPct(position.pnl_pct)})</span>
+              <span style={{ color: (holding.pnl ?? 0) >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                <span className="tnum font-semibold">{signedMoney(holding.pnl, position.currency)}</span>
+                <span className="tnum ml-1">({signedPct(holding.pnl_pct)})</span>
               </span>
               <span className="ml-1" style={{ color: 'var(--text-muted)' }}>overall</span>
             </div>
@@ -99,10 +132,10 @@ export function StockPanel({ position, onClose }: { position: Position; onClose:
 
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
             {[
-              ['Qty', String(position.qty)],
-              ['Avg cost', money(position.avg_cost, true)],
-              ['Last price', money(position.price, true)],
-              ['Weight', pct(position.weight, 1)],
+              ['Qty', String(holding.qty)],
+              ['Avg cost', money(holding.avg_cost, true, position.currency)],
+              ['Last price', money(holding.price, true, position.currency)],
+              ['Weight', pct(holding.weight, 1)],
             ].map(([k, v]) => (
               <div key={k}>
                 <dt className="text-xs" style={{ color: 'var(--text-muted)' }}>{k}</dt>
@@ -110,6 +143,7 @@ export function StockPanel({ position, onClose }: { position: Position; onClose:
               </div>
             ))}
           </dl>
+          </>}
 
           {/* Price history */}
           <section>
@@ -119,6 +153,7 @@ export function StockPanel({ position, onClose }: { position: Position; onClose:
                    style={{ background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)' }} />
             ) : (
               <LineChart
+                currency={position.currency}
                 data={prices.map((p) => ({ date: p.date, value: p.close }))}
                 height={220}
                 label={`${position.ticker} close`}
@@ -139,13 +174,21 @@ export function StockPanel({ position, onClose }: { position: Position; onClose:
 
             {outcome ? (
               <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                {OUTCOME_HELP[outcome] ?? outcome}
+                {assessment?.rendered_text ?? OUTCOME_HELP[outcome] ?? outcome}
               </p>
             ) : (
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 No assessment recorded for this date yet.
               </p>
             )}
+            {drivers.map((driver) => <div key={driver.rank} className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-sm">{driver.chain_text}</p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>{driver.confidence} · {driver.confidence_reason}</p>
+              <ul className="mt-2 space-y-1 text-xs">{evidence.filter((item) => driver.evidence_ids.includes(item.id)).map((item) => <li key={item.id}>
+                {item.url && /^https?:\/\//i.test(item.url) ? <a href={item.url} target="_blank" rel="noopener noreferrer" className="underline">{item.headline ?? item.source}</a> : item.headline ?? item.source}
+                <span className="ml-2" style={{ color: 'var(--text-muted)' }}>{item.source} · Tier {item.tier}</span>
+              </li>)}</ul>
+            </div>)}
 
             <p className="mt-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
               {outcome === 'NOISE' || outcome === 'MARKET'
@@ -154,6 +197,7 @@ export function StockPanel({ position, onClose }: { position: Position; onClose:
             </p>
           </section>
 
+          <NewsFeed stockId={position.stock_id} />
           <p className="pb-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
             Explanation only — not investment advice.
           </p>

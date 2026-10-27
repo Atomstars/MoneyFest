@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\candidate.json",
+    "sha256": "798ca0d316fc4eadc89614defdc1c9c1cac4007cc349492bb473484b157a8fdf",
+    "bytes": 5462
+  },
+  "artifact": {
+    "path": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\moneyfest-architecture.html",
+    "sha256": "f76f8572251326ca16a8fbf5750c48fe7df4bf0c8a2e509276ba1f91a91c390b",
+    "bytes": 823633
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\review-2\\moneyfest-architecture.finalize.json",
+    "summaryReceipt": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\review-2\\moneyfest-architecture.finalize-summary.json",
+    "browserCheckReceipt": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\review-2\\moneyfest-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.1.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-14T09:49:56.950Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 8295
+}

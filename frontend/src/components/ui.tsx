@@ -83,7 +83,7 @@ export function ErrorNote({ error, onRetry }: { error: string; onRetry?: () => v
       <p className="text-sm font-medium">Couldn't load this</p>
       <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>{error}</p>
       <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-        Is the API running? <code>python -m app.api</code>
+        Please check your connection and try again.
       </p>
       {onRetry && (
         <button

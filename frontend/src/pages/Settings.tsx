@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { APP_NAME, PageHeader, SECTIONS } from '../components/Shell'
+import { PageHeader } from '../components/Shell'
+import { APP_NAME, SECTIONS } from '../lib/app'
 import { Card } from '../components/ui'
+import { api } from '../lib/api'
 
 /** A titled settings section. Every group states what it governs. */
 function Section({ title, description, children }: {
@@ -87,6 +89,11 @@ export function Settings() {
   const [quietMarket, setQuietMarket] = useState(false)
   const [digest, setDigest] = useState(false)
   const [health, setHealth] = useState<string>('checking…')
+  const [saving, setSaving] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
     const root = document.documentElement
@@ -100,18 +107,31 @@ export function Settings() {
   }, [theme])
 
   useEffect(() => {
-    fetch('/health')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    api.health()
       .then((j) => setHealth(j.status === 'ok' ? 'Connected' : String(j.status)))
       .catch(() => setHealth('Unreachable'))
   }, [])
+  useEffect(() => {
+    let active = true
+    api.preferences().then((prefs) => {
+      if (!active) return
+      setAlertLevel(prefs.alert_level); setQuietMarket(prefs.quiet_market); setDigest(prefs.daily_digest); setLoaded(true)
+    }).catch((e) => { if (active) setError(e.message) })
+    return () => { active = false }
+  }, [retry])
+  async function save() {
+    setSaving(true); setStatus(null); setError(null)
+    try { await api.savePreferences({ alert_level: alertLevel, quiet_market: quietMarket, daily_digest: digest }); setStatus('Preferences saved.') }
+    catch (e) { setError(e instanceof Error ? e.message : 'Could not save preferences.') }
+    finally { setSaving(false) }
+  }
 
   return (
     <>
-      <PageHeader title={SECTIONS['/settings'].title} subtitle={SECTIONS['/settings'].subtitle} />
+      <PageHeader title={SECTIONS['/settings'].title}  />
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Section title="Appearance" description="How the interface looks on this device.">
+        <Section title="Appearance" description="">
           <Row
             label="Theme"
             hint="System follows your OS setting."
@@ -119,48 +139,47 @@ export function Settings() {
           />
         </Section>
 
-        <Section title="Alerts" description="What reaches you, and how noisy it is.">
+        <Section title="Delivery preferences" description="Saved preferences for future verified-driver delivery.">
+          <fieldset disabled={!loaded || saving}>
           <Row
             label="Alert level"
             hint="Explained-only skips routine days."
-            control={<Segmented value={alertLevel} options={ALERTS} onChange={setAlertLevel} />}
+            control={<Segmented value={alertLevel} options={ALERTS} onChange={(v) => { setAlertLevel(v); setStatus(null) }} />}
           />
           <Row
             label="Quiet market days"
             hint="Suppress alerts when the whole market moved."
-            control={<Toggle on={quietMarket} onChange={setQuietMarket} label="Quiet market days" />}
+            control={<Toggle on={quietMarket} onChange={(v) => { setQuietMarket(v); setStatus(null) }} label="Quiet market days" />}
           />
           <Row
             label="Daily digest"
             hint="One summary instead of per-stock alerts."
-            control={<Toggle on={digest} onChange={setDigest} label="Daily digest" />}
+            control={<Toggle on={digest} onChange={(v) => { setDigest(v); setStatus(null) }} label="Daily digest" />}
           />
+          </fieldset>
+          <button className="action-button mt-3" disabled={!loaded || saving} onClick={() => void save()}>{saving ? 'Saving…' : 'Save preferences'}</button>
+          {status && <p role="status" className="mt-2 text-xs">{status}</p>}
+          {error && <p role="alert" className="mt-2 text-xs">{error} {!loaded && <button onClick={() => { setError(null); setRetry((n) => n + 1) }}>Retry</button>}</p>}
+          <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>Company news updates appear in News & alerts every 15 minutes while the server runs. Email, push and verified-driver delivery are not connected; these preferences are saved for later.</p>
         </Section>
 
-        <Section title="Data & engine" description="Where the numbers come from.">
-          <Row label="API" hint="FastAPI backend on localhost:8000" control={
+        <Section title="Data & engine" description="">
+          <Row label="Connection" hint="Your account and portfolio server" control={
             <span className="text-xs font-medium"
                   style={{ color: health === 'Connected' ? 'var(--up)' : 'var(--down)' }}>
               {health}
             </span>
           } />
-          <Row label="Prices" hint="yfinance adjusted closes, end-of-day"
-               control={<span className="text-xs" style={{ color: 'var(--text-muted)' }}>EOD</span>} />
-          <Row label="Filings" hint="NSE + BSE corporate announcements"
-               control={<span className="text-xs" style={{ color: 'var(--text-muted)' }}>Tier 1</span>} />
+          <Row label="Prices" hint="Yahoo Finance · completed daily closes"
+               control={<span className="text-xs" style={{ color: 'var(--text-muted)' }}>Best effort</span>} />
+          <Row label="News" hint="Google News · publisher links"
+               control={<span className="text-xs" style={{ color: 'var(--text-muted)' }}>Every 15 min</span>} />
         </Section>
 
-        <Section title="About" description={`What ${APP_NAME} does, and deliberately does not do.`}>
-          <Row label="Version" hint="Preview build"
-               control={<span className="text-xs" style={{ color: 'var(--text-muted)' }}>0.5.0</span>} />
-          <div className="border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              {APP_NAME} explains why a stock moved, citing filings, macro data and news.
-              It does <strong>not</strong> predict prices, score stocks, or recommend trades —
-              those are deliberate omissions, not missing features. &ldquo;No clear
-              driver&rdquo; is a valid answer and you will see it often.
-            </p>
-          </div>
+        <Section title="About" description="">
+          <Row label={APP_NAME} hint="Portfolio & news workspace" control={<span className="outline-badge">Preview</span>} />
+          <Row label="Coverage" hint="Upstox NSE & BSE equity catalog" control={<span className="text-xs muted">India</span>} />
+          <p className="text-xs muted pt-3">Headline sentiment is a quick signal. A cause for a price move requires verified evidence.</p>
         </Section>
       </div>
 
@@ -168,9 +187,6 @@ export function Settings() {
         Explanation only — not investment advice.
       </p>
 
-      <p className="pb-4 text-center text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        Alert preferences are local to this preview and aren&rsquo;t saved to the server yet.
-      </p>
     </>
   )
 }

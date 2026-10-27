@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "MoneyFest application architecture",
+    "locale": "en",
+    "output": ".archify/architecture-moneyfest-20261014-151740/moneyfest-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/Atomstars/MoneyFest.git",
+      "revision": "98fb31695b4b850783caa3b8a161b020b55fc48b",
+      "link_mode": "local-only"
+    }
+  },
+  "components": [
+    {
+      "id": "investor", "type": "external", "label": "Investor", "sublabel": "Desktop or phone browser",
+      "pos": [40, 280], "size": [130, 70],
+      "sources": [{"path": "README.md", "line": 1, "end_line": 3}]
+    },
+    {
+      "id": "react", "type": "frontend", "label": "React app", "sublabel": "Portfolio, funds, news, research",
+      "pos": [240, 280], "size": [170, 70],
+      "sources": [
+        {"path": "frontend/src/main.tsx", "line": 1, "end_line": 36},
+        {"path": "frontend/vite.config.ts", "line": 5, "end_line": 17},
+        {"path": "frontend/src/lib/api.ts", "line": 72, "end_line": 87}
+      ]
+    },
+    {
+      "id": "spring", "type": "backend", "label": "Spring Boot API", "sublabel": "Auth, portfolio, funds, news",
+      "pos": [570, 280], "size": [180, 70],
+      "sources": [
+        {"path": "backend/src/main/java/com/moneyfest/MoneyFestApplication.java", "line": 1, "end_line": 24},
+        {"path": "backend/src/main/java/com/moneyfest/config/SecurityConfig.java", "line": 12, "end_line": 26},
+        {"path": "backend/src/main/java/com/moneyfest/api/portfolio/PortfolioController.java", "line": 18, "end_line": 42}
+      ]
+    },
+    {
+      "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "Users, holdings, prices, news",
+      "pos": [900, 280], "size": [180, 70],
+      "sources": [
+        {"path": "backend/src/main/resources/application.yml", "line": 26, "end_line": 31},
+        {"path": "backend/src/main/resources/db/migration/V1__accounts_and_portfolio.sql", "line": 1, "end_line": 48},
+        {"path": "backend/src/main/resources/db/migration/V4__funds_and_research.sql", "line": 1, "end_line": 39}
+      ]
+    },
+    {
+      "id": "assistant", "type": "backend", "label": "AI assistant", "sublabel": "Optional, source-grounded Q&A",
+      "pos": [570, 75], "size": [180, 70],
+      "sources": [
+        {"path": "backend/src/main/java/com/moneyfest/api/research/AssistantController.java", "line": 18, "end_line": 34},
+        {"path": "backend/src/main/java/com/moneyfest/api/research/AssistantController.java", "line": 40, "end_line": 72}
+      ]
+    },
+    {
+      "id": "gemini", "type": "external", "label": "Gemini API", "sublabel": "Runs only with server key",
+      "pos": [900, 75], "size": [180, 70],
+      "sources": [
+        {"path": "backend/src/main/resources/application.yml", "line": 5, "end_line": 8},
+        {"path": "backend/src/main/java/com/moneyfest/api/research/AssistantController.java", "line": 72, "end_line": 82}
+      ]
+    },
+    {
+      "id": "sync", "type": "backend", "label": "Data sync jobs", "sublabel": "Market, fund and research refresh",
+      "pos": [900, 510], "size": [180, 75],
+      "sources": [
+        {"path": "backend/src/main/java/com/moneyfest/service/market/MarketService.java", "line": 17, "end_line": 53},
+        {"path": "backend/src/main/java/com/moneyfest/service/fund/FundService.java", "line": 23, "end_line": 60},
+        {"path": "backend/src/main/java/com/moneyfest/service/research/ResearchService.java", "line": 14, "end_line": 47}
+      ]
+    },
+    {
+      "id": "feeds", "type": "external", "label": "Public data feeds", "sublabel": "Upstox, Yahoo, Google, AMFI",
+      "pos": [900, 720], "size": [180, 75],
+      "sources": [
+        {"path": "backend/src/main/java/com/moneyfest/provider/MarketProvider.java", "line": 40, "end_line": 43},
+        {"path": "backend/src/main/java/com/moneyfest/provider/MarketProvider.java", "line": 68, "end_line": 91},
+        {"path": "backend/src/main/java/com/moneyfest/service/fund/FundService.java", "line": 40, "end_line": 45}
+      ]
+    }
+  ],
+  "connections": [
+    {"id": "open-app", "from": "investor", "to": "react", "label": "uses app", "variant": "emphasis"},
+    {"id": "call-api", "from": "react", "to": "spring", "label": "/api/v1 + CSRF", "variant": "security"},
+    {"id": "persist", "from": "spring", "to": "postgres", "label": "JDBC queries", "variant": "emphasis"},
+    {"id": "ask-ai", "from": "spring", "to": "assistant", "label": "ask (optional)"},
+    {"id": "llm-request", "from": "assistant", "to": "gemini", "label": "HTTPS request"},
+    {"id": "rag-context", "from": "assistant", "to": "postgres", "label": "retrieve context"},
+    {"id": "queue-refresh", "from": "spring", "to": "sync", "label": "queue stock refresh"},
+    {"id": "fetch-feeds", "from": "sync", "to": "feeds", "label": "scheduled fetch"},
+    {"id": "save-market-data", "from": "sync", "to": "postgres", "label": "save updates"}
+  ],
+  "cards": [
+    {"dot": "cyan", "title": "Current flow", "items": ["React calls a same-origin API; Spring Security protects account routes.", "Scheduled and queued jobs save catalog, close, headline and NAV data."]},
+    {"dot": "amber", "title": "Scope today", "items": ["News tone is a signal, not verified price-move causation.", "The archived Python explanation engine is not connected; future-price prediction and delivered alerts are not implemented."]}
+  ]
+}

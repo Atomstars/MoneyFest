@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6d47b08d-a471-44a0-99dc-848a95021118",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\candidate.json",
+  "output": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\moneyfest-architecture.html",
+  "specification": {
+    "sha256": "798ca0d316fc4eadc89614defdc1c9c1cac4007cc349492bb473484b157a8fdf",
+    "bytes": 5462
+  },
+  "artifact": {
+    "sha256": "f76f8572251326ca16a8fbf5750c48fe7df4bf0c8a2e509276ba1f91a91c390b",
+    "bytes": 823633
+  }
+}

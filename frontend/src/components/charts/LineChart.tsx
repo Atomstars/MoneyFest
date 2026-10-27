@@ -15,15 +15,18 @@ export function LineChart({
   height = 260,
   color = 'var(--series-1)',
   label = 'Value',
+  currency = 'INR',
 }: {
   data: Point[]
   height?: number
   color?: string
   label?: string
+  currency?: string
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<number | null>(null)
   const [width, setWidth] = useState(720)
+  const gid = useMemo(() => `lg-${Math.random().toString(36).slice(2, 9)}`, [])
 
   // Observe the container so the viewBox matches real layout width. This must be an
   // effect, not useMemo: useMemo runs during render while the ref is still null, so
@@ -37,7 +40,7 @@ export function LineChart({
     const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [data.length])
 
   const pad = { top: 16, right: 16, bottom: 26, left: 52 }
   const w = Math.max(width, 320)
@@ -69,7 +72,6 @@ export function LineChart({
 
   const ticks = 4
   const gridVals = Array.from({ length: ticks + 1 }, (_, i) => min + ((max - min) * i) / ticks)
-  const gid = useMemo(() => `lg-${Math.random().toString(36).slice(2, 9)}`, [])
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -109,7 +111,7 @@ export function LineChart({
               x={pad.left - 8} y={y(v)} textAnchor="end" dominantBaseline="middle"
               fontSize="11" fill="var(--text-muted)" className="tnum"
             >
-              {compactMoney(v)}
+              {compactMoney(v, currency)}
             </text>
           </g>
         ))}
@@ -149,7 +151,7 @@ export function LineChart({
           }}
         >
           <div style={{ color: 'var(--text-secondary)' }}>{shortDate(hp.date)}</div>
-          <div className="tnum font-semibold">{compactMoney(hp.value)}</div>
+          <div className="tnum font-semibold">{compactMoney(hp.value, currency)}</div>
         </div>
       )}
     </div>

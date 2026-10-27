@@ -1,20 +1,20 @@
-/** Formatting helpers. Indian numbering (lakh/crore) throughout -- this is an NSE/BSE product. */
+/** Currency-aware formatting; missing prices never render as zero. */
 
 const inr = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 })
 const inr2 = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /** A rupee amount. `null` renders as an em dash, never as 0 -- a missing price
  *  must never be readable as a real value. */
-export function money(v: number | null | undefined, decimals = false): string {
+export function money(v: number | null | undefined, decimals = false, currency = 'INR'): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—'
-  return `₹${(decimals ? inr2 : inr).format(v)}`
+  return currency === 'USD' ? new Intl.NumberFormat('en-US', {style: 'currency', currency, minimumFractionDigits: decimals ? 2 : 0, maximumFractionDigits: decimals ? 2 : 0}).format(v) : `₹${(decimals ? inr2 : inr).format(v)}`
 }
 
 /** Signed rupee amount, for P&L and day change. */
-export function signedMoney(v: number | null | undefined): string {
+export function signedMoney(v: number | null | undefined, currency = 'INR'): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—'
   const sign = v > 0 ? '+' : v < 0 ? '−' : ''
-  return `${sign}₹${inr.format(Math.abs(v))}`
+  return `${sign}${money(Math.abs(v), false, currency)}`
 }
 
 export function pct(v: number | null | undefined, digits = 2): string {
@@ -29,8 +29,9 @@ export function signedPct(v: number | null | undefined, digits = 2): string {
 }
 
 /** Compact form for axis ticks: ₹1.2L, ₹3.4Cr. */
-export function compactMoney(v: number | null | undefined): string {
+export function compactMoney(v: number | null | undefined, currency = 'INR'): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—'
+  if (currency === 'USD') return new Intl.NumberFormat('en-US', {style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1}).format(v)
   const a = Math.abs(v)
   if (a >= 1e7) return `₹${(v / 1e7).toFixed(1)}Cr`
   if (a >= 1e5) return `₹${(v / 1e5).toFixed(1)}L`

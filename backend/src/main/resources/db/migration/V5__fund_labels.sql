@@ -1,0 +1,2 @@
+ALTER TABLE fund_scheme ALTER COLUMN plan TYPE TEXT;
+ALTER TABLE fund_scheme ALTER COLUMN option_name TYPE TEXT;

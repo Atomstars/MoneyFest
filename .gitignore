@@ -4,7 +4,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# Local database -- rebuild with `python -m scripts.bootstrap`
+# Legacy Python local databases
 *.db
 
 # Secrets. Keys live in the environment only, never in the repo.
@@ -23,3 +23,11 @@ frontend/node_modules/
 Thumbs.db
 .idea/
 .vscode/
+
+# Java and isolated local PostgreSQL
+backend/target/
+.local/
+hs_err_pid*.log
+replay_pid*.log
+frontend/test-results/
+frontend/playwright-report/

@@ -2,13 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-// The FastAPI app owns the data; Vite only serves the UI in dev and proxies
-// everything the API exposes, so the browser sees one origin and the existing
-// cookie auth keeps working without CORS.
-const API = 'http://127.0.0.1:8000'
+// Spring Boot owns /api; Vite preserves one origin for sessions and CSRF.
+const API = process.env.MONEYFEST_API_URL ?? 'http://127.0.0.1:8080'
 const proxied = [
-  '/portfolio', '/stocks', '/health', '/watchlist',
-  '/metrics', '/alerts', '/runs', '/users', '/exposure', '/run_eod',
+  '/api',
 ]
 
 export default defineConfig({
@@ -18,6 +15,12 @@ export default defineConfig({
     proxy: Object.fromEntries(
       proxied.map((p) => [p, { target: API, changeOrigin: true }]),
     ),
+  },
+  preview: {
+    host: '127.0.0.1',
+    port: 4173,
+    strictPort: true,
+    allowedHosts: ['.trycloudflare.com'],
   },
   build: { outDir: 'dist' },
 })

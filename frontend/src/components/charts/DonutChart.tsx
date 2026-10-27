@@ -24,7 +24,7 @@ function arc(cx: number, cy: number, r: number, from: number, to: number) {
  * decorative: three light-mode slots sit below 3:1 contrast on the light
  * surface, so the palette's relief rule mandates visible direct labels.
  */
-export function DonutChart({ data, total }: { data: AllocationSlice[]; total: number }) {
+export function DonutChart({ data, total, currency = 'INR' }: { data: AllocationSlice[]; total: number | null; currency?: string }) {
   const [active, setActive] = useState<number | null>(null)
 
   const slices =
@@ -48,7 +48,7 @@ export function DonutChart({ data, total }: { data: AllocationSlice[]; total: nu
 
   let angle = -Math.PI / 2
   const arcs = slices.map((s, i) => {
-    const frac = total > 0 ? s.value / total : 0
+    const frac = total !== null && total > 0 ? s.value / total : 0
     const sweep = frac * Math.PI * 2
     const a0 = angle + GAP / 2
     const a1 = angle + sweep - GAP / 2
@@ -81,11 +81,11 @@ export function DonutChart({ data, total }: { data: AllocationSlice[]; total: nu
             {shown ? shown.sector.replace(/_/g, ' ') : 'Total'}
           </div>
           <div className="text-lg font-semibold">
-            {shown ? pct(shown.frac) : money(total)}
+            {shown ? pct(shown.frac) : money(total, false, currency)}
           </div>
           {shown && (
             <div className="tnum text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-              {money(shown.value)}
+              {money(shown.value, false, currency)}
             </div>
           )}
         </div>

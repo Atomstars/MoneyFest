@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\candidate.json",
+    "sha256": "087668523e01e60bfe40bea141755507e314aad7f47a91180b1eace43c77f199",
+    "bytes": 5462
+  },
+  "artifact": {
+    "path": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\moneyfest-architecture.html",
+    "sha256": "5b10b6e98861affc14d9c9a84ff1a49a5b5bf3bb9ecf442a48d2db9a0132af32",
+    "bytes": 823837
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\moneyfest-architecture.finalize.json",
+    "summaryReceipt": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\moneyfest-architecture.finalize-summary.json",
+    "browserCheckReceipt": "E:\\java github\\java-projects-backup-f803b26c\\MoneyFest\\.archify\\architecture-moneyfest-20261014-151740\\moneyfest-architecture.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.1.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-14T09:49:56.950Z",
+    "source": "network",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 8166,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 1,
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "persist",
+            "from": "spring",
+            "to": "postgres",
+            "label": "JDBC queries",
+            "collectionIndex": 2,
+            "artifactIndex": 3
+          },
+          "right": {
+            "id": "save-market-data",
+            "from": "sync",
+            "to": "postgres",
+            "label": "save updates",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            876,
+            374
+          ],
+          "sharedNode": "postgres"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "save-market-data",
+            "from": "sync",
+            "to": "postgres",
+            "label": "save updates",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "bends": 4,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "spring → postgres and sync → postgres cross next to postgres: move node spring or sync so the two reach postgres from different sides (for example one level with it, one directly above or below it).",
+      "sync → postgres needs 4 bends: move node sync or postgres so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}
