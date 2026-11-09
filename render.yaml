@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: moneyfest-api
+    runtime: docker
+    plan: free
+    region: singapore
+    repo: https://github.com/Atomstars/MoneyFest
+    branch: main
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DB_HOST
+        fromDatabase:
+          name: moneyfest-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: moneyfest-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: moneyfest-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: moneyfest-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: moneyfest-db
+          property: password
+databases:
+  - name: moneyfest-db
+    databaseName: moneyfest
+    user: moneyfest
+    plan: free
+    region: singapore
+    postgresMajorVersion: "18"
+    ipAllowList: []
