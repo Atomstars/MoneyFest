@@ -4,9 +4,10 @@ server:
   forward-headers-strategy: native
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 5
-      minimum-idle: 1
+      minimum-idle: 0
+      idle-timeout: 60000

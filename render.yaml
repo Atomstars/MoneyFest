@@ -15,31 +15,9 @@ services:
         value: production
       - key: COOKIE_SECURE
         value: "true"
-      - key: DB_HOST
-        fromDatabase:
-          name: moneyfest-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: moneyfest-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: moneyfest-db
-          property: database
+      - key: DB_URL
+        sync: false
       - key: DB_USER
-        fromDatabase:
-          name: moneyfest-db
-          property: user
+        sync: false
       - key: DB_PASSWORD
-        fromDatabase:
-          name: moneyfest-db
-          property: password
-databases:
-  - name: moneyfest-db
-    databaseName: moneyfest
-    user: moneyfest
-    plan: free
-    region: singapore
-    postgresMajorVersion: "18"
-    ipAllowList: []
+        sync: false

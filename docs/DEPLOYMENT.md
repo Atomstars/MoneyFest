@@ -1,12 +1,12 @@
 # Hosted MoneyFest
 
-The React frontend is deployed from frontend/ to Vercel. The Java 21 Spring Boot API and PostgreSQL database are defined in render.yaml for Render's Singapore region.
+The React frontend is deployed from frontend/ to Vercel. The Java 21 Spring Boot API is defined in render.yaml for Render's Singapore region. PostgreSQL is hosted separately on Neon's Free plan.
 
 ## Runtime
 
 - The API uses the production Spring profile, binds 0.0.0.0 and the platform PORT, and validates its database with /api/v1/health.
-- Render supplies database properties and credentials through Blueprint references. No credential is committed.
-- PostgreSQL accepts private-network connections only. Flyway applies versioned migrations when the API starts.
+- Set DB_URL, DB_USER and DB_PASSWORD as backend secrets. DB_URL must be a JDBC URL without embedded credentials: jdbc:postgresql://<Neon-host>/<database>?sslmode=verify-full. Do not paste a postgres:// URL into a JDBC configuration. No credential is committed.
+- The API connects to Neon over TLS with certificate verification. Flyway applies versioned migrations when the API starts.
 - The Java container runs as an unprivileged user, with a bounded heap and a five-connection database pool.
 - Existing GitHub Actions checks verify Java integration tests, frontend compilation, and browser workflows. Subsequent API releases wait for these checks.
 - Keep API calls on the frontend origin through a Vercel /api/:path* rewrite to the actual backend origin after provisioning. Preserve /api in the destination path. Never put database credentials in frontend variables.
@@ -15,7 +15,7 @@ The React frontend is deployed from frontend/ to Vercel. The Java 21 Spring Boot
 
 ## Free deployment limits
 
-The selected API and database plans are free. Free Render services sleep when idle. Free PostgreSQL expires after 30 days and has no managed backups; this configuration is for a temporary portfolio deployment. Upgrade or migrate the database before expiration to retain data. No paid upgrade is authorized by this configuration.
+The selected API and database plans are free. Free Render services sleep after inactivity and share a workspace allowance. Neon Free has no fixed expiry and no card requirement; its compute, storage, and network quotas still apply. The pool permits zero idle connections. Do not add artificial keep-alive requests. This configuration creates no Render Postgres database and authorizes no paid plan.
 
 ## Checkpoint
 
