@@ -1,0 +1,25 @@
+name: Production smoke check
+on:
+  push:
+    branches: [main]
+    paths:
+      - frontend/vercel.json
+      - scripts/verify-production.py
+      - .github/workflows/production-smoke.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: moneyfest-production-smoke
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify deployed Java API, database and sessions through Vercel
+        run: python scripts/verify-production.py
